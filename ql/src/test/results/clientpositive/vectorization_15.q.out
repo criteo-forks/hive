@@ -73,7 +73,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: ((cstring2 like '%ss%') or ((cstring1 like '10%') or ((cint >= -75) and ((UDFToShort(ctinyint) = csmallint) and (cdouble >= -3728.0))))) (type: boolean)
+              predicate: ((cstring2 like '%ss%') or (cstring1 like '10%') or ((cint >= -75) and (UDFToShort(ctinyint) = csmallint) and (cdouble >= -3728.0))) (type: boolean)
               Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cfloat (type: float), cboolean1 (type: boolean), cdouble (type: double), cstring1 (type: string), ctinyint (type: tinyint), cint (type: int), ctimestamp1 (type: timestamp)
@@ -91,7 +91,6 @@ STAGE PLANS:
                     Map-reduce partition columns: _col0 (type: float), _col1 (type: boolean), _col2 (type: double), _col3 (type: string), _col4 (type: tinyint), _col5 (type: int), _col6 (type: timestamp)
                     Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col7 (type: struct<count:bigint,sum:double,variance:double>), _col8 (type: double), _col9 (type: struct<count:bigint,sum:double,variance:double>), _col10 (type: struct<count:bigint,sum:double,variance:double>), _col11 (type: struct<count:bigint,sum:double,variance:double>), _col12 (type: struct<count:bigint,sum:double,variance:double>)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: stddev_samp(VALUE._col0), min(VALUE._col1), stddev_samp(VALUE._col2), var_pop(VALUE._col3), var_samp(VALUE._col4), stddev_pop(VALUE._col5)

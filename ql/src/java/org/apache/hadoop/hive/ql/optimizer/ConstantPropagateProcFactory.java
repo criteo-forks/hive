@@ -575,31 +575,27 @@ public final class ConstantPropagateProcFactory {
       final List<ExprNodeDesc> notNullExprs = new ArrayList<ExprNodeDesc>();
       final List<Integer> notNullExprsPositions = new ArrayList<Integer>();
       final List<ExprNodeDesc> compareExprs = new ArrayList<ExprNodeDesc>();
-      for (int i = 0; i < 2; i++) {
+
+      for (int i = 0; i < newExprs.size(); i++) {
         ExprNodeDesc childExpr = newExprs.get(i);
         if (childExpr instanceof ExprNodeConstantDesc) {
           ExprNodeConstantDesc c = (ExprNodeConstantDesc) childExpr;
           if (Boolean.TRUE.equals(c.getValue())) {
-
             // if true, prune it
             positionsToRemove.set(i);
           } else {
-
-            // if false return false
+            // if false, return false
             return childExpr;
           }
         } else if (childExpr instanceof ExprNodeGenericFuncDesc &&
-                ((ExprNodeGenericFuncDesc) childExpr).getGenericUDF() instanceof GenericUDFOPNotNull &&
+
+                ((ExprNodeGenericFuncDesc)childExpr).getGenericUDF() instanceof GenericUDFOPNotNull &&
                 childExpr.getChildren().get(0) instanceof ExprNodeColumnDesc) {
           notNullExprs.add(childExpr.getChildren().get(0));
           notNullExprsPositions.add(i);
-        } else if (childExpr instanceof ExprNodeGenericFuncDesc &&
-                ((ExprNodeGenericFuncDesc) childExpr).getGenericUDF() instanceof GenericUDFBaseCompare &&
-                !(((ExprNodeGenericFuncDesc) childExpr).getGenericUDF() instanceof GenericUDFOPNotEqual) &&
-                childExpr.getChildren().size() == 2) {
-          // Try to fold (key <op> 86) and (key is not null) to (key <op> 86)
-          // where <op> can be "=", ">=", "<=", ">", "<".
-          // Note: (key <> 86) and (key is not null) cannot be folded
+        } else if (childExpr instanceof ExprNodeGenericFuncDesc
+                && ((ExprNodeGenericFuncDesc)childExpr).getGenericUDF() instanceof GenericUDFBaseCompare
+                && childExpr.getChildren().size() == 2) {
           ExprNodeColumnDesc colDesc = getColumnExpr(childExpr.getChildren().get(0));
           if (null == colDesc) {
             colDesc = getColumnExpr(childExpr.getChildren().get(1));
@@ -635,20 +631,33 @@ public final class ConstantPropagateProcFactory {
     }
 
     if (udf instanceof GenericUDFOPOr) {
-      for (int i = 0; i < 2; i++) {
+      final BitSet positionsToRemove = new BitSet();
+      for (int i = 0; i < newExprs.size(); i++) {
         ExprNodeDesc childExpr = newExprs.get(i);
         if (childExpr instanceof ExprNodeConstantDesc) {
           ExprNodeConstantDesc c = (ExprNodeConstantDesc) childExpr;
           if (Boolean.FALSE.equals(c.getValue())) {
-
             // if false, prune it
-            return newExprs.get(Math.abs(i - 1));
-          } else {
-
+            positionsToRemove.set(i);
+          } else
+          if (Boolean.TRUE.equals(c.getValue())) {
             // if true return true
             return childExpr;
           }
         }
+      }
+      int pos = 0;
+      int removed = 0;
+      while ((pos = positionsToRemove.nextSetBit(pos)) != -1) {
+        newExprs.remove(pos - removed);
+        pos++;
+        removed++;
+      }
+      if (newExprs.size() == 0) {
+        return new ExprNodeConstantDesc(TypeInfoFactory.booleanTypeInfo, Boolean.FALSE);
+      }
+      if (newExprs.size() == 1) {
+        return newExprs.get(0);
       }
     }
 

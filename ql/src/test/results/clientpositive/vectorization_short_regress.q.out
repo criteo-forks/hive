@@ -143,7 +143,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: ((762 = cbigint) or (((UDFToFloat(csmallint) < cfloat) and ((UDFToDouble(ctimestamp2) > -5.0) and (cdouble <> UDFToDouble(cint)))) or ((cstring1 = 'a') or ((UDFToDouble(cbigint) <= -1.389) and ((cstring2 <> 'a') and ((79.553 <> UDFToDouble(cint)) and (cboolean2 <> cboolean1))))))) (type: boolean)
+              predicate: ((762 = cbigint) or ((UDFToFloat(csmallint) < cfloat) and (UDFToDouble(ctimestamp2) > -5.0) and (cdouble <> UDFToDouble(cint))) or (cstring1 = 'a') or ((UDFToDouble(cbigint) <= -1.389) and (cstring2 <> 'a') and (79.553 <> UDFToDouble(cint)) and (cboolean2 <> cboolean1))) (type: boolean)
               Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cint (type: int), cdouble (type: double), csmallint (type: smallint), cfloat (type: float), ctinyint (type: tinyint)
@@ -158,7 +158,6 @@ STAGE PLANS:
                     sort order: 
                     Statistics: Num rows: 1 Data size: 20 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col0 (type: struct<count:bigint,sum:double,input:int>), _col1 (type: double), _col2 (type: struct<count:bigint,sum:double,variance:double>), _col3 (type: struct<count:bigint,sum:double,variance:double>), _col4 (type: struct<count:bigint,sum:double,variance:double>), _col5 (type: struct<count:bigint,sum:double,input:float>), _col6 (type: struct<count:bigint,sum:double,variance:double>), _col7 (type: tinyint), _col8 (type: bigint)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: avg(VALUE._col0), sum(VALUE._col1), stddev_pop(VALUE._col2), stddev_samp(VALUE._col3), var_samp(VALUE._col4), avg(VALUE._col5), stddev_samp(VALUE._col6), min(VALUE._col7), count(VALUE._col8)
@@ -349,7 +348,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: (((cbigint <= 197) and (UDFToLong(cint) < cbigint)) or (((cdouble >= -26.28) and (UDFToDouble(csmallint) > cdouble)) or (((UDFToFloat(ctinyint) > cfloat) and (cstring1 rlike '.*ss.*')) or ((cfloat > 79.553) and (cstring2 like '10%'))))) (type: boolean)
+              predicate: (((cbigint <= 197) and (UDFToLong(cint) < cbigint)) or ((cdouble >= -26.28) and (UDFToDouble(csmallint) > cdouble)) or ((UDFToFloat(ctinyint) > cfloat) and (cstring1 rlike '.*ss.*')) or ((cfloat > 79.553) and (cstring2 like '10%'))) (type: boolean)
               Statistics: Num rows: 6826 Data size: 209555 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cint (type: int), cbigint (type: bigint), csmallint (type: smallint), cdouble (type: double), ctinyint (type: tinyint)
@@ -364,7 +363,6 @@ STAGE PLANS:
                     sort order: 
                     Statistics: Num rows: 1 Data size: 24 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col0 (type: int), _col1 (type: struct<count:bigint,sum:double,variance:double>), _col2 (type: struct<count:bigint,sum:double,variance:double>), _col3 (type: double), _col4 (type: struct<count:bigint,sum:double,input:tinyint>), _col5 (type: int), _col6 (type: double), _col7 (type: struct<count:bigint,sum:double,variance:double>), _col8 (type: struct<count:bigint,sum:double,variance:double>)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: max(VALUE._col0), var_pop(VALUE._col1), stddev_pop(VALUE._col2), max(VALUE._col3), avg(VALUE._col4), min(VALUE._col5), min(VALUE._col6), stddev_samp(VALUE._col7), var_samp(VALUE._col8)
@@ -546,7 +544,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: ((ctimestamp1 = ctimestamp2) or ((762.0 = cfloat) or ((cstring1 = 'ss') or (((UDFToLong(csmallint) <= cbigint) and (1 = cboolean2)) or (cboolean1 is not null and (ctimestamp2 is not null and (cstring2 > 'a'))))))) (type: boolean)
+              predicate: ((ctimestamp1 = ctimestamp2) or (762.0 = cfloat) or (cstring1 = 'ss') or ((UDFToLong(csmallint) <= cbigint) and (1 = cboolean2)) or (cboolean1 is not null and ctimestamp2 is not null and (cstring2 > 'a'))) (type: boolean)
               Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cbigint (type: bigint), ctinyint (type: tinyint), csmallint (type: smallint), cint (type: int), cdouble (type: double)
@@ -561,7 +559,6 @@ STAGE PLANS:
                     sort order: 
                     Statistics: Num rows: 1 Data size: 24 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col0 (type: struct<count:bigint,sum:double,variance:double>), _col1 (type: bigint), _col2 (type: tinyint), _col3 (type: struct<count:bigint,sum:double,variance:double>), _col4 (type: int), _col5 (type: struct<count:bigint,sum:double,variance:double>), _col6 (type: bigint), _col7 (type: struct<count:bigint,sum:double,input:tinyint>)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: var_pop(VALUE._col0), count(VALUE._col1), max(VALUE._col2), stddev_pop(VALUE._col3), max(VALUE._col4), stddev_samp(VALUE._col5), count(VALUE._col6), avg(VALUE._col7)
@@ -722,7 +719,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: (((ctimestamp2 <= ctimestamp1) and ((UDFToDouble(cbigint) <> cdouble) and ('ss' <= cstring1))) or (((csmallint < UDFToShort(ctinyint)) and (UDFToDouble(ctimestamp1) >= 0.0)) or (cfloat = 17.0))) (type: boolean)
+              predicate: (((ctimestamp2 <= ctimestamp1) and (UDFToDouble(cbigint) <> cdouble) and ('ss' <= cstring1)) or ((csmallint < UDFToShort(ctinyint)) and (UDFToDouble(ctimestamp1) >= 0.0)) or (cfloat = 17.0)) (type: boolean)
               Statistics: Num rows: 8874 Data size: 272428 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: ctinyint (type: tinyint), cbigint (type: bigint), cint (type: int), cfloat (type: float)
@@ -737,7 +734,6 @@ STAGE PLANS:
                     sort order: 
                     Statistics: Num rows: 1 Data size: 12 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col0 (type: struct<count:bigint,sum:double,input:tinyint>), _col1 (type: bigint), _col2 (type: struct<count:bigint,sum:double,variance:double>), _col3 (type: struct<count:bigint,sum:double,variance:double>), _col4 (type: struct<count:bigint,sum:double,variance:double>), _col5 (type: float)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: avg(VALUE._col0), max(VALUE._col1), stddev_samp(VALUE._col2), var_pop(VALUE._col3), var_pop(VALUE._col4), max(VALUE._col5)
@@ -906,7 +902,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: (((cstring1 rlike 'a.*') and (cstring2 like '%ss%')) or (((1 <> cboolean2) and ((UDFToDouble(csmallint) < 79.553) and (-257 <> UDFToInteger(ctinyint)))) or (((cdouble > UDFToDouble(ctinyint)) and (cfloat >= UDFToFloat(cint))) or ((UDFToLong(cint) < cbigint) and (UDFToLong(ctinyint) > cbigint))))) (type: boolean)
+              predicate: (((cstring1 rlike 'a.*') and (cstring2 like '%ss%')) or ((1 <> cboolean2) and (UDFToDouble(csmallint) < 79.553) and (-257 <> UDFToInteger(ctinyint))) or ((cdouble > UDFToDouble(ctinyint)) and (cfloat >= UDFToFloat(cint))) or ((UDFToLong(cint) < cbigint) and (UDFToLong(ctinyint) > cbigint))) (type: boolean)
               Statistics: Num rows: 9898 Data size: 303864 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cint (type: int), cdouble (type: double), ctimestamp2 (type: timestamp), cstring1 (type: string), cboolean2 (type: boolean), ctinyint (type: tinyint), cfloat (type: float), ctimestamp1 (type: timestamp), csmallint (type: smallint), cbigint (type: bigint), (-3728 * cbigint) (type: bigint), (- cint) (type: int), (-863.257 - UDFToDouble(cint)) (type: double), (- csmallint) (type: smallint), (csmallint - (- csmallint)) (type: smallint), ((csmallint - (- csmallint)) + (- csmallint)) (type: smallint), (UDFToDouble(cint) / UDFToDouble(cint)) (type: double), ((-863.257 - UDFToDouble(cint)) - -26.28) (type: double), (- cfloat) (type: float), (cdouble * -89010.0) (type: double), (UDFToDouble(ctinyint) / 988888.0) (type: double), (- ctinyint) (type: tinyint), (79.553 / UDFToDouble(ctinyint)) (type: double)
@@ -917,7 +913,6 @@ STAGE PLANS:
                   sort order: ++++++++++
                   Statistics: Num rows: 9898 Data size: 303864 Basic stats: COMPLETE Column stats: NONE
                   value expressions: _col10 (type: bigint), _col11 (type: int), _col12 (type: double), _col13 (type: smallint), _col14 (type: smallint), _col15 (type: smallint), _col16 (type: double), _col17 (type: double), _col18 (type: float), _col19 (type: double), _col20 (type: double), _col21 (type: tinyint), _col22 (type: double)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Select Operator
           expressions: KEY.reducesinkkey0 (type: int), KEY.reducesinkkey1 (type: double), KEY.reducesinkkey2 (type: timestamp), KEY.reducesinkkey3 (type: string), KEY.reducesinkkey4 (type: boolean), KEY.reducesinkkey5 (type: tinyint), KEY.reducesinkkey6 (type: float), KEY.reducesinkkey7 (type: timestamp), KEY.reducesinkkey8 (type: smallint), KEY.reducesinkkey9 (type: bigint), VALUE._col0 (type: bigint), VALUE._col1 (type: int), VALUE._col2 (type: double), VALUE._col3 (type: smallint), VALUE._col4 (type: smallint), VALUE._col5 (type: smallint), VALUE._col6 (type: double), VALUE._col7 (type: double), VALUE._col8 (type: float), VALUE._col9 (type: double), VALUE._col10 (type: double), VALUE._col11 (type: tinyint), VALUE._col12 (type: double)
@@ -1158,7 +1153,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: (((197.0 > UDFToDouble(ctinyint)) and (UDFToLong(cint) = cbigint)) or ((cbigint = 359) or ((cboolean1 < 0) or ((cstring1 like '%ss') and (cfloat <= UDFToFloat(ctinyint)))))) (type: boolean)
+              predicate: (((197.0 > UDFToDouble(ctinyint)) and (UDFToLong(cint) = cbigint)) or (cbigint = 359) or (cboolean1 < 0) or ((cstring1 like '%ss') and (cfloat <= UDFToFloat(ctinyint)))) (type: boolean)
               Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cint (type: int), cbigint (type: bigint), cstring1 (type: string), cboolean1 (type: boolean), cfloat (type: float), cdouble (type: double), ctimestamp2 (type: timestamp), csmallint (type: smallint), cstring2 (type: string), cboolean2 (type: boolean), (UDFToDouble(cint) / UDFToDouble(cbigint)) (type: double), (UDFToDouble(cbigint) % 79.553) (type: double), (- (UDFToDouble(cint) / UDFToDouble(cbigint))) (type: double), (10.175 % UDFToDouble(cfloat)) (type: double), (- cfloat) (type: float), (cfloat - (- cfloat)) (type: float), ((cfloat - (- cfloat)) % -6432.0) (type: float), (cdouble * UDFToDouble(csmallint)) (type: double), (- cdouble) (type: double), (- cbigint) (type: bigint), (UDFToDouble(cfloat) - (UDFToDouble(cint) / UDFToDouble(cbigint))) (type: double), (- csmallint) (type: smallint), (3569 % cbigint) (type: bigint), (359.0 - cdouble) (type: double)
@@ -1169,7 +1164,6 @@ STAGE PLANS:
                   sort order: ++++++++++
                   Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
                   value expressions: _col10 (type: double), _col11 (type: double), _col12 (type: double), _col13 (type: double), _col14 (type: float), _col15 (type: float), _col16 (type: float), _col17 (type: double), _col18 (type: double), _col19 (type: bigint), _col20 (type: double), _col21 (type: smallint), _col22 (type: bigint), _col23 (type: double)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Select Operator
           expressions: KEY.reducesinkkey0 (type: int), KEY.reducesinkkey1 (type: bigint), KEY.reducesinkkey2 (type: string), KEY.reducesinkkey3 (type: boolean), KEY.reducesinkkey4 (type: float), KEY.reducesinkkey5 (type: double), KEY.reducesinkkey6 (type: timestamp), KEY.reducesinkkey7 (type: smallint), KEY.reducesinkkey8 (type: string), KEY.reducesinkkey9 (type: boolean), VALUE._col0 (type: double), VALUE._col1 (type: double), VALUE._col2 (type: double), VALUE._col3 (type: double), VALUE._col4 (type: float), VALUE._col5 (type: float), VALUE._col6 (type: float), VALUE._col7 (type: double), VALUE._col8 (type: double), VALUE._col9 (type: bigint), VALUE._col10 (type: double), VALUE._col11 (type: smallint), VALUE._col12 (type: bigint), VALUE._col13 (type: double), VALUE._col11 (type: smallint)
@@ -1359,7 +1353,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: (((UDFToDouble(csmallint) > -26.28) and (cstring2 like 'ss')) or (((cdouble <= UDFToDouble(cbigint)) and ((cstring1 >= 'ss') and (UDFToDouble(cint) <> cdouble))) or ((UDFToInteger(ctinyint) = -89010) or ((UDFToFloat(cbigint) <= cfloat) and (-26.28 <= UDFToDouble(csmallint)))))) (type: boolean)
+              predicate: (((UDFToDouble(csmallint) > -26.28) and (cstring2 like 'ss')) or ((cdouble <= UDFToDouble(cbigint)) and (cstring1 >= 'ss') and (UDFToDouble(cint) <> cdouble)) or (UDFToInteger(ctinyint) = -89010) or ((UDFToFloat(cbigint) <= cfloat) and (-26.28 <= UDFToDouble(csmallint)))) (type: boolean)
               Statistics: Num rows: 10922 Data size: 335301 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cint (type: int), cstring1 (type: string), cboolean2 (type: boolean), ctimestamp2 (type: timestamp), cdouble (type: double), cfloat (type: float), cbigint (type: bigint), csmallint (type: smallint), cboolean1 (type: boolean), (cint + UDFToInteger(csmallint)) (type: int), (cbigint - UDFToLong(ctinyint)) (type: bigint), (- cbigint) (type: bigint), (- cfloat) (type: float), ((cbigint - UDFToLong(ctinyint)) + cbigint) (type: bigint), (cdouble / cdouble) (type: double), (- cdouble) (type: double), (UDFToLong((cint + UDFToInteger(csmallint))) * (- cbigint)) (type: bigint), ((- cdouble) + UDFToDouble(cbigint)) (type: double), (-1.389 / UDFToDouble(ctinyint)) (type: double), (UDFToDouble(cbigint) % cdouble) (type: double), (- csmallint) (type: smallint), (UDFToInteger(csmallint) + (cint + UDFToInteger(csmallint))) (type: int)
@@ -1370,7 +1364,6 @@ STAGE PLANS:
                   sort order: ++++++++++
                   Statistics: Num rows: 10922 Data size: 335301 Basic stats: COMPLETE Column stats: NONE
                   value expressions: _col2 (type: boolean), _col9 (type: int), _col10 (type: bigint), _col11 (type: bigint), _col12 (type: float), _col13 (type: bigint), _col14 (type: double), _col15 (type: double), _col16 (type: bigint), _col17 (type: double), _col18 (type: double), _col19 (type: double), _col20 (type: smallint), _col21 (type: int)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Select Operator
           expressions: KEY.reducesinkkey7 (type: int), KEY.reducesinkkey1 (type: string), VALUE._col0 (type: boolean), KEY.reducesinkkey2 (type: timestamp), KEY.reducesinkkey6 (type: double), KEY.reducesinkkey3 (type: float), KEY.reducesinkkey4 (type: bigint), KEY.reducesinkkey8 (type: smallint), KEY.reducesinkkey0 (type: boolean), VALUE._col1 (type: int), VALUE._col2 (type: bigint), VALUE._col3 (type: bigint), VALUE._col4 (type: float), VALUE._col5 (type: bigint), VALUE._col6 (type: double), VALUE._col7 (type: double), VALUE._col8 (type: bigint), VALUE._col9 (type: double), VALUE._col10 (type: double), VALUE._col11 (type: double), VALUE._col12 (type: smallint), VALUE._col13 (type: int)
@@ -1618,7 +1611,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: (((-1.389 >= UDFToDouble(cint)) and ((csmallint < UDFToShort(ctinyint)) and (-6432 > UDFToInteger(csmallint)))) or (((cdouble >= UDFToDouble(cfloat)) and (cstring2 <= 'a')) or ((cstring1 like 'ss%') and (10.175 > UDFToDouble(cbigint))))) (type: boolean)
+              predicate: (((-1.389 >= UDFToDouble(cint)) and (csmallint < UDFToShort(ctinyint)) and (-6432 > UDFToInteger(csmallint))) or ((cdouble >= UDFToDouble(cfloat)) and (cstring2 <= 'a')) or ((cstring1 like 'ss%') and (10.175 > UDFToDouble(cbigint)))) (type: boolean)
               Statistics: Num rows: 3868 Data size: 118746 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: ctimestamp1 (type: timestamp), cstring2 (type: string), cdouble (type: double), cfloat (type: float), cbigint (type: bigint), csmallint (type: smallint), (UDFToDouble(cbigint) / 3569.0) (type: double), (-257 - UDFToInteger(csmallint)) (type: int), (-6432.0 * cfloat) (type: float), (- cdouble) (type: double), (cdouble * 10.175) (type: double), (UDFToDouble((-6432.0 * cfloat)) / UDFToDouble(cfloat)) (type: double), (- cfloat) (type: float), (cint % UDFToInteger(csmallint)) (type: int), (cdouble * (- cdouble)) (type: double)
@@ -1629,7 +1622,6 @@ STAGE PLANS:
                   sort order: +++
                   Statistics: Num rows: 3868 Data size: 118746 Basic stats: COMPLETE Column stats: NONE
                   value expressions: _col0 (type: timestamp), _col3 (type: float), _col4 (type: bigint), _col6 (type: double), _col7 (type: int), _col8 (type: float), _col9 (type: double), _col10 (type: double), _col11 (type: double), _col12 (type: float), _col13 (type: int), _col15 (type: double)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Select Operator
           expressions: VALUE._col0 (type: timestamp), KEY.reducesinkkey1 (type: string), KEY.reducesinkkey2 (type: double), VALUE._col1 (type: float), VALUE._col2 (type: bigint), KEY.reducesinkkey0 (type: smallint), VALUE._col3 (type: double), VALUE._col4 (type: int), VALUE._col5 (type: float), VALUE._col6 (type: double), VALUE._col7 (type: double), VALUE._col8 (type: double), VALUE._col9 (type: float), VALUE._col10 (type: int), VALUE._col6 (type: double), VALUE._col11 (type: double)
@@ -1720,7 +1712,7 @@ NULL	4hA4KQj2vD3fI6gX82220d	12329.0	NULL	-1887561756	12329	-528876.9279910339	-1
 1969-12-31 15:59:57.729	020gtq4CLjybO3F40kpyXi	15601.0	30.0	-1986754040	15601	-556669.6665732699	-15858	-192960.0	-15601.0	158740.17500000002	-6432.0	-30.0	NULL	-15601.0	-2.43391201E8
 1969-12-31 15:59:58.704	041Ph15F	15601.0	-55.0	-1338667765	15601	-375082.02998038667	-15858	353760.0	-15601.0	158740.17500000002	-6432.0	55.0	NULL	-15601.0	-2.43391201E8
 1969-12-31 15:59:54.253	047TAc3t6f6rU8M7Dk7Gh8	15601.0	-44.0	272368436	15601	76315.05631829644	-15858	283008.0	-15601.0	158740.17500000002	-6432.0	44.0	NULL	-15601.0	-2.43391201E8
-1969-12-31 16:00:04.063	04XP4DrTCblC7885	15601.0	79.553	-1452617198	15601	-407009.58195572987	-15858	-511684.9	-15601.0	158740.17500000002	-6432.0	-79.553	NULL	-15601.0	-2.43391201E8
+1969-12-31 16:00:04.063	04XP4DrTCblC7885	15601.0	79.553	-1452617198	15601	-407009.58195572987	-15858	-511684.9	-15601.0	158740.17500000002	-6432.000015344526	-79.553	NULL	-15601.0	-2.43391201E8
 1969-12-31 16:00:09.123	064GHv0UW8	15601.0	-14.0	1007181336	15601	282202.67189688986	-15858	90048.0	-15601.0	158740.17500000002	-6432.0	14.0	NULL	-15601.0	-2.43391201E8
 1969-12-31 16:00:05.83	06Tj8f5xNhpaiE71AWqJ7b5	15601.0	-49.0	226841234	15601	63558.76548052676	-15858	315168.0	-15601.0	158740.17500000002	-6432.0	49.0	NULL	-15601.0	-2.43391201E8
 1969-12-31 15:59:47.436	08wTUR832pDS4Hd8O40	15601.0	-51.0	69448698	15601	19458.86746987952	-15858	328032.0	-15601.0	158740.17500000002	-6432.0	51.0	NULL	-15601.0	-2.43391201E8
@@ -2030,7 +2022,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: ((cdouble > 2563.58) and (((cbigint >= UDFToLong(cint)) and ((UDFToInteger(csmallint) < cint) and (UDFToDouble(cfloat) < -5638.15))) or ((2563.58 = UDFToDouble(ctinyint)) or ((cdouble <= UDFToDouble(cbigint)) and (-5638.15 > UDFToDouble(cbigint)))))) (type: boolean)
+              predicate: ((cdouble > 2563.58) and (((cbigint >= UDFToLong(cint)) and (UDFToInteger(csmallint) < cint) and (UDFToDouble(cfloat) < -5638.15)) or (2563.58 = UDFToDouble(ctinyint)) or ((cdouble <= UDFToDouble(cbigint)) and (-5638.15 > UDFToDouble(cbigint))))) (type: boolean)
               Statistics: Num rows: 2654 Data size: 81476 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cdouble (type: double), cfloat (type: float)
@@ -2048,7 +2040,6 @@ STAGE PLANS:
                     Map-reduce partition columns: _col0 (type: double)
                     Statistics: Num rows: 2654 Data size: 81476 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col1 (type: struct<count:bigint,sum:double,variance:double>), _col2 (type: bigint), _col3 (type: double), _col4 (type: struct<count:bigint,sum:double,variance:double>), _col5 (type: struct<count:bigint,sum:double,variance:double>), _col6 (type: double)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: var_samp(VALUE._col0), count(VALUE._col1), sum(VALUE._col2), var_pop(VALUE._col3), stddev_pop(VALUE._col4), sum(VALUE._col5)
@@ -2288,7 +2279,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: ((UDFToDouble(ctimestamp1) <> 0.0) and (((-257 <> UDFToInteger(ctinyint)) and (cboolean2 is not null and ((cstring1 rlike '.*ss') and (-3.0 < UDFToDouble(ctimestamp1))))) or ((UDFToDouble(ctimestamp2) = -5.0) or (((UDFToDouble(ctimestamp1) < 0.0) and (cstring2 like '%b%')) or ((cdouble = UDFToDouble(cint)) or (cboolean1 is null and (cfloat < UDFToFloat(cint)))))))) (type: boolean)
+              predicate: ((UDFToDouble(ctimestamp1) <> 0.0) and (((-257 <> UDFToInteger(ctinyint)) and cboolean2 is not null and (cstring1 rlike '.*ss') and (-3.0 < UDFToDouble(ctimestamp1))) or (UDFToDouble(ctimestamp2) = -5.0) or ((UDFToDouble(ctimestamp1) < 0.0) and (cstring2 like '%b%')) or (cdouble = UDFToDouble(cint)) or (cboolean1 is null and (cfloat < UDFToFloat(cint))))) (type: boolean)
               Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: ctimestamp1 (type: timestamp), cstring1 (type: string), cint (type: int), csmallint (type: smallint), ctinyint (type: tinyint), cfloat (type: float), cdouble (type: double)
@@ -2306,7 +2297,6 @@ STAGE PLANS:
                     Map-reduce partition columns: _col0 (type: timestamp), _col1 (type: string)
                     Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col2 (type: struct<count:bigint,sum:double,variance:double>), _col3 (type: struct<count:bigint,sum:double,input:smallint>), _col4 (type: bigint), _col5 (type: tinyint), _col6 (type: struct<count:bigint,sum:double,variance:double>), _col7 (type: struct<count:bigint,sum:double,variance:double>), _col8 (type: struct<count:bigint,sum:double,input:int>), _col9 (type: struct<count:bigint,sum:double,variance:double>), _col10 (type: struct<count:bigint,sum:double,input:float>), _col11 (type: double), _col12 (type: struct<count:bigint,sum:double,variance:double>), _col13 (type: struct<count:bigint,sum:double,variance:double>), _col14 (type: bigint)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: stddev_pop(VALUE._col0), avg(VALUE._col1), count(VALUE._col2), min(VALUE._col3), var_samp(VALUE._col4), var_pop(VALUE._col5), avg(VALUE._col6), var_samp(VALUE._col7), avg(VALUE._col8), min(VALUE._col9), var_pop(VALUE._col10), stddev_pop(VALUE._col11), sum(VALUE._col12)
@@ -2624,7 +2614,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: (cboolean1 is not null and (((cdouble < UDFToDouble(csmallint)) and ((cboolean2 = cboolean1) and (UDFToDouble(cbigint) <= -863.257))) or (((cint >= -257) and (cstring1 is not null and (cboolean1 >= 1))) or ((cstring2 rlike 'b') or ((csmallint >= UDFToShort(ctinyint)) and ctimestamp2 is null))))) (type: boolean)
+              predicate: (cboolean1 is not null and (((cdouble < UDFToDouble(csmallint)) and (cboolean2 = cboolean1) and (UDFToDouble(cbigint) <= -863.257)) or ((cint >= -257) and cstring1 is not null and (cboolean1 >= 1)) or (cstring2 rlike 'b') or ((csmallint >= UDFToShort(ctinyint)) and ctimestamp2 is null))) (type: boolean)
               Statistics: Num rows: 4778 Data size: 146682 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cboolean1 (type: boolean), cfloat (type: float), cbigint (type: bigint), cint (type: int), cdouble (type: double), ctinyint (type: tinyint), csmallint (type: smallint)
@@ -2642,7 +2632,6 @@ STAGE PLANS:
                     Map-reduce partition columns: _col0 (type: boolean)
                     Statistics: Num rows: 4778 Data size: 146682 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col1 (type: float), _col2 (type: bigint), _col3 (type: struct<count:bigint,sum:double,variance:double>), _col4 (type: struct<count:bigint,sum:double,input:double>), _col5 (type: bigint), _col6 (type: struct<count:bigint,sum:double,variance:double>), _col7 (type: bigint), _col8 (type: struct<count:bigint,sum:double,variance:double>), _col9 (type: struct<count:bigint,sum:double,variance:double>), _col10 (type: struct<count:bigint,sum:double,input:int>)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: max(VALUE._col0), sum(VALUE._col1), var_samp(VALUE._col2), avg(VALUE._col3), min(VALUE._col4), var_pop(VALUE._col5), sum(VALUE._col6), stddev_samp(VALUE._col7), stddev_pop(VALUE._col8), avg(VALUE._col9)

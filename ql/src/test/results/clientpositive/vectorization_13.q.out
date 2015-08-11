@@ -77,7 +77,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: (((cfloat < 3569.0) and ((10.175 >= cdouble) and (cboolean1 <> 1))) or ((UDFToDouble(ctimestamp1) > 11.0) and ((UDFToDouble(ctimestamp2) <> 12.0) and (UDFToDouble(ctinyint) < 9763215.5639)))) (type: boolean)
+              predicate: (((cfloat < 3569.0) and (10.175 >= cdouble) and (cboolean1 <> 1)) or ((UDFToDouble(ctimestamp1) > 11.0) and (UDFToDouble(ctimestamp2) <> 12.0) and (UDFToDouble(ctinyint) < 9763215.5639))) (type: boolean)
               Statistics: Num rows: 2730 Data size: 83809 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cboolean1 (type: boolean), ctinyint (type: tinyint), ctimestamp1 (type: timestamp), cfloat (type: float), cstring1 (type: string)
@@ -95,7 +95,6 @@ STAGE PLANS:
                     Map-reduce partition columns: _col0 (type: boolean), _col1 (type: tinyint), _col2 (type: timestamp), _col3 (type: float), _col4 (type: string)
                     Statistics: Num rows: 2730 Data size: 83809 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col5 (type: tinyint), _col6 (type: double), _col7 (type: struct<count:bigint,sum:double,variance:double>), _col8 (type: struct<count:bigint,sum:double,variance:double>), _col9 (type: float), _col10 (type: tinyint)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: max(VALUE._col0), sum(VALUE._col1), stddev_pop(VALUE._col2), stddev_pop(VALUE._col3), max(VALUE._col4), min(VALUE._col5)
@@ -334,7 +333,7 @@ STAGE PLANS:
             alias: alltypesorc
             Statistics: Num rows: 12288 Data size: 377237 Basic stats: COMPLETE Column stats: NONE
             Filter Operator
-              predicate: (((cfloat < 3569.0) and ((10.175 >= cdouble) and (cboolean1 <> 1))) or ((UDFToDouble(ctimestamp1) > -1.388) and ((UDFToDouble(ctimestamp2) <> -1.3359999999999999) and (UDFToDouble(ctinyint) < 9763215.5639)))) (type: boolean)
+              predicate: (((cfloat < 3569.0) and (10.175 >= cdouble) and (cboolean1 <> 1)) or ((UDFToDouble(ctimestamp1) > -1.388) and (UDFToDouble(ctimestamp2) <> -1.3359999999999999) and (UDFToDouble(ctinyint) < 9763215.5639))) (type: boolean)
               Statistics: Num rows: 2730 Data size: 83809 Basic stats: COMPLETE Column stats: NONE
               Select Operator
                 expressions: cboolean1 (type: boolean), ctinyint (type: tinyint), ctimestamp1 (type: timestamp), cfloat (type: float), cstring1 (type: string)
@@ -352,7 +351,6 @@ STAGE PLANS:
                     Map-reduce partition columns: _col0 (type: boolean), _col1 (type: tinyint), _col2 (type: timestamp), _col3 (type: float), _col4 (type: string)
                     Statistics: Num rows: 2730 Data size: 83809 Basic stats: COMPLETE Column stats: NONE
                     value expressions: _col5 (type: tinyint), _col6 (type: double), _col7 (type: struct<count:bigint,sum:double,variance:double>), _col8 (type: struct<count:bigint,sum:double,variance:double>), _col9 (type: float), _col10 (type: tinyint)
-      Execution mode: vectorized
       Reduce Operator Tree:
         Group By Operator
           aggregations: max(VALUE._col0), sum(VALUE._col1), stddev_pop(VALUE._col2), stddev_pop(VALUE._col3), max(VALUE._col4), min(VALUE._col5)
