@@ -23,10 +23,16 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
+import org.apache.hadoop.hive.ql.metadata.Hive;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.parse.SemanticException;
 
 public class DynamicPartitionCtx implements Serializable {
 
@@ -39,7 +45,7 @@ public class DynamicPartitionCtx implements Serializable {
   private int numDPCols;   // number of dynamic partition columns
   private int numSPCols;   // number of static partition columns
   private String spPath;   // path name corresponding to SP columns
-  private String rootPath; // the root path DP columns paths start from
+  private Path rootPath; // the root path DP columns paths start from
   private int numBuckets;  // number of buckets in each partition
 
   private Map<String, String> inputToDPCols; // mapping from input column names to DP columns
@@ -48,12 +54,13 @@ public class DynamicPartitionCtx implements Serializable {
   private List<String> dpNames; // dp column names
   private String defaultPartName; // default partition name in case of null or empty value
   private int maxPartsPerNode;    // maximum dynamic partitions created per mapper/reducer
+  private Pattern whiteListPattern;
 
   public DynamicPartitionCtx() {
   }
 
   public DynamicPartitionCtx(Table tbl, Map<String, String> partSpec, String defaultPartName,
-      int maxParts) {
+      int maxParts) throws SemanticException {
     this.partSpec = partSpec;
     this.spNames = new ArrayList<String>();
     this.dpNames = new ArrayList<String>();
@@ -76,6 +83,13 @@ public class DynamicPartitionCtx implements Serializable {
     } else {
       this.spPath = null;
     }
+    String confVal;
+    try {
+      confVal = Hive.get().getMetaConf(ConfVars.METASTORE_PARTITION_NAME_WHITELIST_PATTERN.varname);
+    } catch (HiveException e) {
+      throw new SemanticException(e);
+    }
+    this.whiteListPattern = confVal == null || confVal.isEmpty() ? null : Pattern.compile(confVal);
   }
 
   public DynamicPartitionCtx(DynamicPartitionCtx dp) {
@@ -90,6 +104,11 @@ public class DynamicPartitionCtx implements Serializable {
     this.dpNames = dp.dpNames;
     this.defaultPartName = dp.defaultPartName;
     this.maxPartsPerNode = dp.maxPartsPerNode;
+    this.whiteListPattern = dp.whiteListPattern;
+  }
+
+  public Pattern getWhiteListPattern() {
+    return whiteListPattern;
   }
 
   public void mapInputToDP(List<ColumnInfo> fs) {
@@ -128,11 +147,11 @@ public class DynamicPartitionCtx implements Serializable {
     return this.numBuckets;
   }
 
-  public void setRootPath(String root) {
+  public void setRootPath(Path root) {
     this.rootPath = root;
   }
 
-  public String getRootPath() {
+  public Path getRootPath() {
     return this.rootPath;
   }
 

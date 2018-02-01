@@ -17,10 +17,17 @@
  */
 package org.apache.hadoop.hive.metastore;
 
+import java.util.List;
+
 import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
+import org.apache.hadoop.hive.metastore.api.EnvironmentContext;
+import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
 
 /**
  * Interface for Alter Table and Alter Partition code
@@ -28,12 +35,15 @@ import org.apache.hadoop.hive.metastore.api.Table;
 public interface AlterHandler extends Configurable {
 
   /**
-   * handles alter table
-   * 
+   * @deprecated As of release 2.2.0. Replaced by {@link #alterTable(RawStore, Warehouse, String,
+   * String, Table, EnvironmentContext, HMSHandler)}
+   *
+   * handles alter table, the changes could be cascaded to partitions if applicable
+   *
    * @param msdb
    *          object to get metadata
    * @param wh
-   *          TODO
+   *          Hive Warehouse where table data is stored
    * @param dbname
    *          database of the table being altered
    * @param name
@@ -44,9 +54,141 @@ public interface AlterHandler extends Configurable {
    * @throws InvalidOperationException
    *           thrown if the newTable object is invalid
    * @throws MetaException
-   *           thrown if there is any other erro
+   *           thrown if there is any other error
    */
-  public abstract void alterTable(RawStore msdb, Warehouse wh, String dbname,
+  @Deprecated
+  void alterTable(RawStore msdb, Warehouse wh, String dbname,
       String name, Table newTable) throws InvalidOperationException,
       MetaException;
+
+  /**
+   * handles alter table, the changes could be cascaded to partitions if applicable
+   *
+   * @param msdb
+   *          object to get metadata
+   * @param wh
+   *          Hive Warehouse where table data is stored
+   * @param dbname
+   *          database of the table being altered
+   * @param name
+   *          original name of the table being altered. same as
+   *          <i>newTable.tableName</i> if alter op is not a rename.
+   * @param newTable
+   *          new table object
+   * @param handler
+   *          HMSHandle object (required to log event notification)
+   * @throws InvalidOperationException
+   *           thrown if the newTable object is invalid
+   * @throws MetaException
+   *           thrown if there is any other error
+   */
+  void alterTable(RawStore msdb, Warehouse wh, String dbname,
+      String name, Table newTable, boolean cascade,
+      HMSHandler handler) throws InvalidOperationException, MetaException;
+
+  /**
+   * @deprecated As of release 2.2.0.  Replaced by {@link #alterPartition(RawStore, Warehouse, String,
+   * String, List, Partition, EnvironmentContext, HMSHandler)}
+   *
+   * handles alter partition
+   *
+   * @param msdb
+   *          object to get metadata
+   * @param wh
+   * @param dbname
+   *          database of the partition being altered
+   * @param name
+   *          table of the partition being altered
+   * @param part_vals
+   *          original values of the partition being altered
+   * @param new_part
+   *          new partition object
+   * @return the altered partition
+   * @throws InvalidOperationException
+   * @throws InvalidObjectException
+   * @throws AlreadyExistsException
+   * @throws MetaException
+   */
+  @Deprecated
+  Partition alterPartition(final RawStore msdb, Warehouse wh, final String dbname,
+    final String name, final List<String> part_vals, final Partition new_part)
+      throws InvalidOperationException, InvalidObjectException, AlreadyExistsException, MetaException;
+
+  /**
+   * handles alter partition
+   *
+   * @param msdb
+   *          object to get metadata
+   * @param wh
+   * @param dbname
+   *          database of the partition being altered
+   * @param name
+   *          table of the partition being altered
+   * @param part_vals
+   *          original values of the partition being altered
+   * @param new_part
+   *          new partition object
+   * @param handler
+   *          HMSHandle object (required to log event notification)
+   * @return the altered partition
+   * @throws InvalidOperationException
+   * @throws InvalidObjectException
+   * @throws AlreadyExistsException
+   * @throws MetaException
+   */
+  Partition alterPartition(final RawStore msdb, Warehouse wh, final String dbname,
+    final String name, final List<String> part_vals, final Partition new_part, HMSHandler handler)
+      throws InvalidOperationException, InvalidObjectException, AlreadyExistsException, MetaException;
+
+  /**
+   * @deprecated As of release 2.2.0. Replaced by {@link #alterPartitions(RawStore, Warehouse, String,
+   * String, List, EnvironmentContext, HMSHandler)}
+   *
+   * handles alter partitions
+   *
+   * @param msdb
+   *          object to get metadata
+   * @param wh
+   * @param dbname
+   *          database of the partition being altered
+   * @param name
+   *          table of the partition being altered
+   * @param new_parts
+   *          new partition list
+   * @return the altered partition list
+   * @throws InvalidOperationException
+   * @throws InvalidObjectException
+   * @throws AlreadyExistsException
+   * @throws MetaException
+   */
+  @Deprecated
+  List<Partition> alterPartitions(final RawStore msdb, Warehouse wh,
+    final String dbname, final String name, final List<Partition> new_parts)
+      throws InvalidOperationException, InvalidObjectException, AlreadyExistsException, MetaException;
+
+  /**
+   * handles alter partitions
+   *
+   * @param msdb
+   *          object to get metadata
+   * @param wh
+   * @param dbname
+   *          database of the partition being altered
+   * @param name
+   *          table of the partition being altered
+   * @param new_parts
+   *          new partition list
+   * @param handler
+   *          HMSHandle object (required to log event notification)
+   * @return the altered partition list
+   * @throws InvalidOperationException
+   * @throws InvalidObjectException
+   * @throws AlreadyExistsException
+   * @throws MetaException
+   */
+
+  List<Partition> alterPartitions(final RawStore msdb, Warehouse wh,
+    final String dbname, final String name, final List<Partition> new_parts,
+    HMSHandler handler)
+      throws InvalidOperationException, InvalidObjectException, AlreadyExistsException, MetaException;
 }

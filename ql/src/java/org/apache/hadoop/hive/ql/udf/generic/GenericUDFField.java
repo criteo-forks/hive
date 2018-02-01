@@ -24,9 +24,8 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentException;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
-import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.io.IntWritable;
 
@@ -38,7 +37,7 @@ import org.apache.hadoop.io.IntWritable;
     + "returns the index of str in the str1,str2,... list or 0 if not found", extended = "All primitive types are supported, arguments are compared using str.equals(x)."
     + " If str is NULL, the return value is 0.")
 public class GenericUDFField extends GenericUDF {
-  private ObjectInspector[] argumentOIs;
+  private transient ObjectInspector[] argumentOIs;
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments)
@@ -91,12 +90,6 @@ public class GenericUDFField extends GenericUDF {
   @Override
   public String getDisplayString(String[] children) {
     assert (children.length >= 2);
-
-    final StringBuilder sb = new StringBuilder();
-    sb.append("field(");
-    sb.append(StringUtils.join(children, ", "));
-    sb.append(")");
-
-    return sb.toString();
+    return getStandardDisplayString("field", children);
   }
 }

@@ -18,12 +18,17 @@
 
 package org.apache.hadoop.hive.ql.exec;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeFieldDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
-import org.apache.hadoop.hive.ql.plan.ExprNodeNullDesc;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
+import org.apache.hadoop.io.NullWritable;
 
 /**
  * ExprNodeEvaluatorFactory.
@@ -34,7 +39,7 @@ public final class ExprNodeEvaluatorFactory {
   private ExprNodeEvaluatorFactory() {
   }
 
-  public static ExprNodeEvaluator get(ExprNodeDesc desc) {
+  public static ExprNodeEvaluator get(ExprNodeDesc desc) throws HiveException {
     // Constant node
     if (desc instanceof ExprNodeConstantDesc) {
       return new ExprNodeConstantEvaluator((ExprNodeConstantDesc) desc);
@@ -51,12 +56,75 @@ public final class ExprNodeEvaluatorFactory {
     if (desc instanceof ExprNodeFieldDesc) {
       return new ExprNodeFieldEvaluator((ExprNodeFieldDesc) desc);
     }
-    // Null node, a constant node with value NULL and no type information
-    if (desc instanceof ExprNodeNullDesc) {
-      return new ExprNodeNullEvaluator((ExprNodeNullDesc) desc);
-    }
-
     throw new RuntimeException(
         "Cannot find ExprNodeEvaluator for the exprNodeDesc = " + desc);
+  }
+
+  public static ExprNodeEvaluator[] toCachedEvals(ExprNodeEvaluator[] evals) {
+    EvaluatorContext context = new EvaluatorContext();
+    for (int i = 0; i < evals.length; i++) {
+      if (evals[i] instanceof ExprNodeGenericFuncEvaluator) {
+        iterate(evals[i], context);
+        if (context.hasReference) {
+          evals[i] = new ExprNodeEvaluatorHead(evals[i]);
+          context.hasReference = false;
+        }
+      }
+    }
+    return evals;
+  }
+
+  /**
+   * Should be called before eval is initialized
+   */
+  public static ExprNodeEvaluator toCachedEval(ExprNodeEvaluator eval) {
+    if (eval instanceof ExprNodeGenericFuncEvaluator) {
+      EvaluatorContext context = new EvaluatorContext();
+      iterate(eval, context);
+      if (context.hasReference) {
+        return new ExprNodeEvaluatorHead(eval);
+      }
+    }
+    // has nothing to be cached
+    return eval;
+  }
+
+  private static ExprNodeEvaluator iterate(ExprNodeEvaluator eval, EvaluatorContext context) {
+    if (!(eval instanceof ExprNodeConstantEvaluator) && eval.isDeterministic()) {
+      ExprNodeEvaluator replace = context.getEvaluated(eval);
+      if (replace != null) {
+        return replace;
+      }
+    }
+    ExprNodeEvaluator[] children = eval.getChildren();
+    if (children != null && children.length > 0) {
+      for (int i = 0; i < children.length; i++) {
+        ExprNodeEvaluator replace = iterate(children[i], context);
+        if (replace != null) {
+          children[i] = replace;
+        }
+      }
+    }
+    return null;
+  }
+
+  private static class EvaluatorContext {
+
+    private final Map<ExprNodeDesc.ExprNodeDescEqualityWrapper, ExprNodeEvaluator> cached =
+        new HashMap<ExprNodeDesc.ExprNodeDescEqualityWrapper, ExprNodeEvaluator>();
+
+    private boolean hasReference;
+
+    public ExprNodeEvaluator getEvaluated(ExprNodeEvaluator eval) {
+      ExprNodeDesc.ExprNodeDescEqualityWrapper key =
+          new ExprNodeDesc.ExprNodeDescEqualityWrapper(eval.expr);
+      ExprNodeEvaluator prev = cached.get(key);
+      if (prev == null) {
+        cached.put(key, eval);
+        return null;
+      }
+      hasReference = true;
+      return new ExprNodeEvaluatorRef(prev);
+    }
   }
 }

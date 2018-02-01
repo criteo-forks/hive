@@ -23,13 +23,15 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyArray;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParameters;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParametersImpl;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.Text;
 
 /**
  * LazyListObjectInspector works on array data that is stored in LazyArray.
- * 
+ *
  * Always use the ObjectInspectorFactory to create new ObjectInspector objects,
  * instead of directly creating an instance of this class.
  */
@@ -38,23 +40,21 @@ public class LazyListObjectInspector implements ListObjectInspector {
   public static final Log LOG = LogFactory.getLog(LazyListObjectInspector.class
       .getName());
 
-  ObjectInspector listElementObjectInspector;
+  private ObjectInspector listElementObjectInspector;
+  private byte separator;
+  private LazyObjectInspectorParameters lazyParams;
 
-  byte separator;
-  Text nullSequence;
-  boolean escaped;
-  byte escapeChar;
-
+  protected LazyListObjectInspector() {
+    super();
+  }
   /**
    * Call ObjectInspectorFactory.getLazySimpleListObjectInspector instead.
    */
   protected LazyListObjectInspector(ObjectInspector listElementObjectInspector,
-      byte separator, Text nullSequence, boolean escaped, byte escapeChar) {
+      byte separator, LazyObjectInspectorParameters lazyParams) {
     this.listElementObjectInspector = listElementObjectInspector;
     this.separator = separator;
-    this.nullSequence = nullSequence;
-    this.escaped = escaped;
-    this.escapeChar = escapeChar;
+    this.lazyParams = lazyParams;
   }
 
   @Override
@@ -98,7 +98,7 @@ public class LazyListObjectInspector implements ListObjectInspector {
 
   @Override
   public String getTypeName() {
-    return org.apache.hadoop.hive.serde.Constants.LIST_TYPE_NAME + "<"
+    return org.apache.hadoop.hive.serde.serdeConstants.LIST_TYPE_NAME + "<"
         + listElementObjectInspector.getTypeName() + ">";
   }
 
@@ -114,15 +114,18 @@ public class LazyListObjectInspector implements ListObjectInspector {
    * Returns the NullSequence for this array. Called by LazyArray.init(...).
    */
   public Text getNullSequence() {
-    return nullSequence;
+    return lazyParams.getNullSequence();
   }
 
   public boolean isEscaped() {
-    return escaped;
+    return lazyParams.isEscaped();
   }
 
   public byte getEscapeChar() {
-    return escapeChar;
+    return lazyParams.getEscapeChar();
   }
 
+  public LazyObjectInspectorParameters getLazyParams() {
+    return lazyParams;
+  }
 }

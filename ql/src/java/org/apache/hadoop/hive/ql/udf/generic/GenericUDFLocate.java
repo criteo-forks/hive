@@ -24,8 +24,8 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentLengthException;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -34,7 +34,7 @@ import org.apache.hadoop.io.Text;
  * Generic UDF for string function <code>LOCATE(substr, str)</code>,
  * <code>LOCATE(substr, str, start)</code>. This mimcs the function from MySQL
  * http://dev.mysql.com/doc/refman/5.1/en/string-functions.html#function_locate
- * 
+ *
  * <pre>
  * usage:
  * LOCATE(substr, str)
@@ -48,7 +48,7 @@ import org.apache.hadoop.io.Text;
     extended = "Example:\n"
     + "  > SELECT _FUNC_('bar', 'foobarbar', 5) FROM src LIMIT 1;\n" + "  7")
 public class GenericUDFLocate extends GenericUDF {
-  private ObjectInspectorConverters.Converter[] converters;
+  private transient ObjectInspectorConverters.Converter[] converters;
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -82,7 +82,7 @@ public class GenericUDFLocate extends GenericUDF {
     return PrimitiveObjectInspectorFactory.writableIntObjectInspector;
   }
 
-  private IntWritable intWritable = new IntWritable(0);
+  private final IntWritable intWritable = new IntWritable(0);
 
   @Override
   public Object evaluate(DeferredObject[] arguments) throws HiveException {
@@ -109,7 +109,6 @@ public class GenericUDFLocate extends GenericUDF {
   @Override
   public String getDisplayString(String[] children) {
     assert (children.length == 2 || children.length == 3);
-    return "locate(" + children[0] + children[1]
-        + (children.length == 3 ? children[2] : "") + ")";
+    return getStandardDisplayString("locate", children);
   }
 }

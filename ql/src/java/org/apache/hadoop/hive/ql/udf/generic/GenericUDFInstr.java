@@ -24,8 +24,8 @@ import org.apache.hadoop.hive.ql.exec.UDFArgumentLengthException;
 import org.apache.hadoop.hive.ql.exec.UDFArgumentTypeException;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorConverters;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -34,7 +34,7 @@ import org.apache.hadoop.io.Text;
  * Generic UDF for string function <code>INSTR(str,substr)</code>. This mimcs
  * the function from MySQL
  * http://dev.mysql.com/doc/refman/5.1/en/string-functions.html#function_instr
- * 
+ *
  * <pre>
  * usage:
  * INSTR(str, substr)
@@ -47,7 +47,7 @@ import org.apache.hadoop.io.Text;
     + "  > SELECT _FUNC_('Facebook', 'boo') FROM src LIMIT 1;\n" + "  5")
 public class GenericUDFInstr extends GenericUDF {
 
-  ObjectInspectorConverters.Converter[] converters;
+  private transient ObjectInspectorConverters.Converter[] converters;
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -93,6 +93,6 @@ public class GenericUDFInstr extends GenericUDF {
   @Override
   public String getDisplayString(String[] children) {
     assert (children.length == 2);
-    return "instr(" + children[0] + children[1] + ")";
+    return getStandardDisplayString("instr", children);
   }
 }

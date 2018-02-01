@@ -23,10 +23,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -35,22 +33,34 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.antlr.runtime.TokenRewriteStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.common.FileUtils;
+import org.apache.hadoop.hive.common.BlobStorageUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.hive.ql.exec.TaskRunner;
+import org.apache.hadoop.hive.ql.exec.Utilities;
+import org.apache.hadoop.hive.ql.hooks.WriteEntity;
+import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLock;
 import org.apache.hadoop.hive.ql.lockmgr.HiveLockManager;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.ql.lockmgr.HiveLockObj;
+import org.apache.hadoop.hive.ql.lockmgr.HiveTxnManager;
+import org.apache.hadoop.hive.ql.plan.LoadTableDesc;
+import org.apache.hadoop.hive.ql.session.SessionState;
+import org.apache.hadoop.hive.shims.ShimLoader;
+import org.apache.hadoop.util.StringUtils;
 
 /**
  * Context for Semantic Analyzers. Usage: not reusable - construct a new one for
  * each query should call clear() at end of use to remove temporary folders
  */
 public class Context {
+  private boolean isHDFSCleanup;
   private Path resFile;
   private Path resDir;
   private FileSystem resFs;
@@ -59,7 +69,7 @@ public class Context {
   private int resDirFilesNum;
   boolean initialized;
   String originalTracker = null;
-  private Map<String, ContentSummary> pathToCS = new ConcurrentHashMap<String, ContentSummary>();
+  private final Map<String, ContentSummary> pathToCS = new ConcurrentHashMap<String, ContentSummary>();
 
   // scratch path to use for all non-local (ie. hdfs) file system tmp folders
   private final Path nonLocalScratchPath;
@@ -67,21 +77,44 @@ public class Context {
   // scratch directory to use for local file system tmp folders
   private final String localScratchDir;
 
-  // Keeps track of scratch directories created for different scheme/authority
-  private final Map<String, String> fsScratchDirs = new HashMap<String, String>();
+  // the permission to scratch directory (local and hdfs)
+  private final String scratchDirPermission;
 
-  private Configuration conf;
+  // Keeps track of scratch directories created for different scheme/authority
+  private final Map<String, Path> fsScratchDirs = new HashMap<String, Path>();
+
+  private final Configuration conf;
   protected int pathid = 10000;
   protected boolean explain = false;
+  protected boolean explainLogical = false;
+  protected String cmd = "";
+  // number of previous attempts
+  protected int tryCount = 0;
   private TokenRewriteStream tokenRewriteStream;
 
-  String executionId;
+  private final String executionId;
 
   // List of Locks for this query
   protected List<HiveLock> hiveLocks;
   protected HiveLockManager hiveLockMgr;
 
+  // Transaction manager for this query
+  protected HiveTxnManager hiveTxnManager;
+
+  // Used to track what type of acid operation (insert, update, or delete) we are doing.  Useful
+  // since we want to change where bucket columns are accessed in some operators and
+  // optimizations when doing updates and deletes.
+  private AcidUtils.Operation acidOperation = AcidUtils.Operation.NOT_ACID;
+
   private boolean needLockMgr;
+
+  // Keep track of the mapping from load table desc to the output and the lock
+  private final Map<LoadTableDesc, WriteEntity> loadTableOutputMap =
+      new HashMap<LoadTableDesc, WriteEntity>();
+  private final Map<WriteEntity, List<HiveLockObj>> outputLockObjects =
+      new HashMap<WriteEntity, List<HiveLockObj>>();
+
+  private final String stagingDir;
 
   public Context(Configuration conf) throws IOException {
     this(conf, generateExecutionId());
@@ -95,16 +128,21 @@ public class Context {
     this.conf = conf;
     this.executionId = executionId;
 
-    // non-local tmp location is configurable. however it is the same across
+    // local & non-local tmp location is configurable. however it is the same across
     // all external file systems
-    nonLocalScratchPath =
-      new Path(HiveConf.getVar(conf, HiveConf.ConfVars.SCRATCHDIR),
-               executionId);
+    nonLocalScratchPath = new Path(SessionState.getHDFSSessionPath(conf), executionId);
+    localScratchDir = new Path(SessionState.getLocalSessionPath(conf), executionId).toUri().getPath();
+    scratchDirPermission = HiveConf.getVar(conf, HiveConf.ConfVars.SCRATCHDIRPERMISSION);
+    stagingDir = HiveConf.getVar(conf, HiveConf.ConfVars.STAGINGDIR);
+  }
 
-    // local tmp location is not configurable for now
-    localScratchDir = System.getProperty("java.io.tmpdir")
-      + Path.SEPARATOR + System.getProperty("user.name") + Path.SEPARATOR
-      + executionId;
+
+  public Map<LoadTableDesc, WriteEntity> getLoadTableOutputMap() {
+    return loadTableOutputMap;
+  }
+
+  public Map<WriteEntity, List<HiveLockObj>> getOutputLockObjects() {
+    return outputLockObjects;
   }
 
   /**
@@ -119,10 +157,99 @@ public class Context {
    * Find whether the current query is an explain query
    * @return true if the query is an explain query, false if not
    */
-  public boolean getExplain () {
+  public boolean getExplain() {
     return explain;
   }
 
+  /**
+   * Find whether the current query is a logical explain query
+   */
+  public boolean getExplainLogical() {
+    return explainLogical;
+  }
+
+  /**
+   * Set the context on whether the current query is a logical
+   * explain query.
+   */
+  public void setExplainLogical(boolean explainLogical) {
+    this.explainLogical = explainLogical;
+  }
+
+  /**
+   * Set the original query command.
+   * @param cmd the original query command string
+   */
+  public void setCmd(String cmd) {
+    this.cmd = cmd;
+  }
+
+  /**
+   * Find the original query command.
+   * @return the original query command string
+   */
+  public String getCmd () {
+    return cmd;
+  }
+
+  /**
+   * Gets a temporary staging directory related to a path.
+   * If a path already contains a staging directory, then returns the current directory; otherwise
+   * create the directory if needed.
+   *
+   * @param inputPath URI of the temporary directory
+   * @param mkdir Create the directory if True.
+   * @return A temporary path.
+   */
+  private Path getStagingDir(Path inputPath, boolean mkdir) {
+    final URI inputPathUri = inputPath.toUri();
+    final String inputPathName = inputPathUri.getPath();
+    final String fileSystem = inputPathUri.getScheme() + ":" + inputPathUri.getAuthority();
+    final FileSystem fs;
+
+    try {
+      fs = inputPath.getFileSystem(conf);
+    } catch (IOException e) {
+      throw new IllegalStateException("Error getting FileSystem for " + inputPath + ": "+ e, e);
+    }
+
+    String stagingPathName;
+    if (inputPathName.indexOf(stagingDir) == -1) {
+      stagingPathName = new Path(inputPathName, stagingDir).toString();
+    } else {
+      stagingPathName = inputPathName.substring(0, inputPathName.indexOf(stagingDir) + stagingDir.length());
+    }
+
+    final String key = fileSystem + "-" + stagingPathName + "-" + TaskRunner.getTaskRunnerID();
+
+    Path dir = fsScratchDirs.get(key);
+    if (dir == null) {
+      // Append task specific info to stagingPathName, instead of creating a sub-directory.
+      // This way we don't have to worry about deleting the stagingPathName separately at
+      // end of query execution.
+      dir = fs.makeQualified(new Path(stagingPathName + "_" + this.executionId + "-" + TaskRunner.getTaskRunnerID()));
+
+      LOG.debug("Created staging dir = " + dir + " for path = " + inputPath);
+
+      if (mkdir) {
+        try {
+          if (!FileUtils.mkdir(fs, dir, true, conf)) {
+            throw new IllegalStateException("Cannot create staging directory  '" + dir.toString() + "'");
+          }
+
+          if (isHDFSCleanup) {
+            fs.deleteOnExit(dir);
+          }
+        } catch (IOException e) {
+          throw new RuntimeException("Cannot create staging directory '" + dir.toString() + "': " + e.getMessage(), e);
+        }
+      }
+
+      fsScratchDirs.put(key, dir);
+    }
+
+    return dir;
+  }
 
   /**
    * Get a tmp directory on specified URI
@@ -130,30 +257,39 @@ public class Context {
    * @param scheme Scheme of the target FS
    * @param authority Authority of the target FS
    * @param mkdir create the directory if true
-   * @param scratchdir path of tmp directory
+   * @param scratchDir path of tmp directory
    */
-  private String getScratchDir(String scheme, String authority,
-                               boolean mkdir, String scratchDir) {
+  private Path getScratchDir(String scheme, String authority,
+      boolean mkdir, String scratchDir) {
 
     String fileSystem =  scheme + ":" + authority;
-    String dir = fsScratchDirs.get(fileSystem);
+    Path dir = fsScratchDirs.get(fileSystem + "-" + TaskRunner.getTaskRunnerID());
 
     if (dir == null) {
-      Path dirPath = new Path(scheme, authority, scratchDir);
+      Path dirPath = new Path(scheme, authority,
+          scratchDir + "-" + TaskRunner.getTaskRunnerID());
       if (mkdir) {
         try {
           FileSystem fs = dirPath.getFileSystem(conf);
           dirPath = new Path(fs.makeQualified(dirPath).toString());
-          if (!fs.mkdirs(dirPath))
+          FsPermission fsPermission = new FsPermission(scratchDirPermission);
+
+          if (!fs.mkdirs(dirPath, fsPermission)) {
             throw new RuntimeException("Cannot make directory: "
-                                       + dirPath.toString());
+                + dirPath.toString());
+          }
+          if (isHDFSCleanup) {
+            fs.deleteOnExit(dirPath);
+          }
         } catch (IOException e) {
           throw new RuntimeException (e);
         }
       }
-      dir = dirPath.toString();
-      fsScratchDirs.put(fileSystem, dir);
+      dir = dirPath;
+      fsScratchDirs.put(fileSystem + "-" + TaskRunner.getTaskRunnerID(), dir);
+
     }
+
     return dir;
   }
 
@@ -161,12 +297,12 @@ public class Context {
   /**
    * Create a local scratch directory on demand and return it.
    */
-  public String getLocalScratchDir(boolean mkdir) {
+  public Path getLocalScratchDir(boolean mkdir) {
     try {
       FileSystem fs = FileSystem.getLocal(conf);
       URI uri = fs.getUri();
       return getScratchDir(uri.getScheme(), uri.getAuthority(),
-                           mkdir, localScratchDir);
+          mkdir, localScratchDir);
     } catch (IOException e) {
       throw new RuntimeException (e);
     }
@@ -177,19 +313,22 @@ public class Context {
    * Create a map-reduce scratch directory on demand and return it.
    *
    */
-  public String getMRScratchDir() {
+  public Path getMRScratchDir() {
 
     // if we are executing entirely on the client side - then
     // just (re)use the local scratch directory
-    if(isLocalOnlyExecutionMode())
+    if(isLocalOnlyExecutionMode()) {
       return getLocalScratchDir(!explain);
+    }
 
     try {
       Path dir = FileUtils.makeQualified(nonLocalScratchPath, conf);
       URI uri = dir.toUri();
-      return getScratchDir(uri.getScheme(), uri.getAuthority(),
-                           !explain, uri.getPath());
 
+      Path newScratchDir = getScratchDir(uri.getScheme(), uri.getAuthority(),
+          !explain, uri.getPath());
+      LOG.info("New scratch dir is " + newScratchDir);
+      return newScratchDir;
     } catch (IOException e) {
       throw new RuntimeException(e);
     } catch (IllegalArgumentException e) {
@@ -198,22 +337,76 @@ public class Context {
     }
   }
 
-  private String getExternalScratchDir(URI extURI) {
-    return getScratchDir(extURI.getScheme(), extURI.getAuthority(),
-                         !explain, nonLocalScratchPath.toUri().getPath());
+  /**
+   * Create a temporary directory depending of the path specified.
+   * - If path is an Object store filesystem, then use the default MR scratch directory (HDFS), unless isFinalJob and
+   * {@link BlobStorageUtils#areOptimizationsEnabled(Configuration)} are both true, then return a path on
+   * the blobstore.
+   * - If path is on HDFS, then create a staging directory inside the path
+   *
+   * @param path Path used to verify the Filesystem to use for temporary directory
+   * @param isFinalJob true if the required {@link Path} will be used for the final job (e.g. the final FSOP)
+   *
+   * @return A path to the new temporary directory
+   */
+  public Path getTempDirForPath(Path path, boolean isFinalJob) {
+    if (((BlobStorageUtils.isBlobStoragePath(conf, path) && !BlobStorageUtils.isBlobStorageAsScratchDir(
+            conf)) || isPathLocal(path))) {
+      if (!(isFinalJob && BlobStorageUtils.areOptimizationsEnabled(conf))) {
+        // For better write performance, we use HDFS for temporary data when object store is used.
+        // Note that the scratch directory configuration variable must use HDFS or any other non-blobstorage system
+        // to take advantage of this performance.
+        return getMRTmpPath();
+      }
+    }
+    return getExtTmpPathRelTo(path);
+  }
+
+
+  /**
+   * Create a temporary directory depending of the path specified.
+   * - If path is an Object store filesystem, then use the default MR scratch directory (HDFS)
+   * - If path is on HDFS, then create a staging directory inside the path
+   *
+   * @param path Path used to verify the Filesystem to use for temporary directory
+   * @return A path to the new temporary directory
+   */
+  public Path getTempDirForPath(Path path) {
+    return getTempDirForPath(path, false);
+  }
+
+  /*
+   * Checks if the path is for the local filesystem or not
+   */
+  private boolean isPathLocal(Path path) {
+    boolean isLocal = false;
+    if (path != null) {
+      String scheme = path.toUri().getScheme();
+      if (scheme != null) {
+        isLocal = scheme.equals(Utilities.HADOOP_LOCAL_FS);
+      }
+    }
+    return isLocal;
+  }
+
+  private Path getExternalScratchDir(URI extURI) {
+    return getStagingDir(new Path(extURI.getScheme(), extURI.getAuthority(), extURI.getPath()), !explain);
   }
 
   /**
    * Remove any created scratch directories.
    */
-  private void removeScratchDir() {
-    for (Map.Entry<String, String> entry : fsScratchDirs.entrySet()) {
+  public void removeScratchDir() {
+    for (Map.Entry<String, Path> entry : fsScratchDirs.entrySet()) {
       try {
-        Path p = new Path(entry.getValue());
-        p.getFileSystem(conf).delete(p, true);
+        Path p = entry.getValue();
+        FileSystem fs = p.getFileSystem(conf);
+        LOG.debug("Deleting scratch dir: " + p);
+        fs.delete(p, true);
+        fs.cancelDeleteOnExit(p);
       } catch (Exception e) {
         LOG.warn("Error Removing Scratch: "
-                 + StringUtils.stringifyException(e));
+            + StringUtils.stringifyException(e));
       }
     }
     fsScratchDirs.clear();
@@ -235,7 +428,11 @@ public class Context {
    */
   public boolean isMRTmpFileURI(String uriStr) {
     return (uriStr.indexOf(executionId) != -1) &&
-      (uriStr.indexOf(MR_PREFIX) != -1);
+        (uriStr.indexOf(MR_PREFIX) != -1);
+  }
+
+  public Path getMRTmpPath(URI uri) {
+    return new Path(getStagingDir(new Path(uri), !explain), MR_PREFIX + nextPathId());
   }
 
   /**
@@ -243,56 +440,45 @@ public class Context {
    *
    * @return next available path for map-red intermediate data
    */
-  public String getMRTmpFileURI() {
-    return getMRScratchDir() + Path.SEPARATOR + MR_PREFIX +
-      nextPathId();
+  public Path getMRTmpPath() {
+    return new Path(getMRScratchDir(), MR_PREFIX +
+        nextPathId());
   }
-
-
-  /**
-   * Given a URI for mapreduce intermediate output, swizzle the
-   * it to point to the local file system. This can be called in
-   * case the caller decides to run in local mode (in which case
-   * all intermediate data can be stored locally)
-   *
-   * @param originalURI uri to localize
-   * @return localized path for map-red intermediate data
-   */
-  public String localizeMRTmpFileURI(String originalURI) {
-    Path o = new Path(originalURI);
-    Path mrbase = new Path(getMRScratchDir());
-
-    URI relURI = mrbase.toUri().relativize(o.toUri());
-    if (relURI.equals(o.toUri()))
-      throw new RuntimeException
-        ("Invalid URI: " + originalURI + ", cannot relativize against" +
-         mrbase.toString());
-
-    return getLocalScratchDir(!explain) + Path.SEPARATOR +
-      relURI.getPath();
-  }
-
 
   /**
    * Get a tmp path on local host to store intermediate data.
    *
    * @return next available tmp path on local fs
    */
-  public String getLocalTmpFileURI() {
-    return getLocalScratchDir(true) + Path.SEPARATOR + LOCAL_PREFIX +
-      nextPathId();
+  public Path getLocalTmpPath() {
+    return new Path(getLocalScratchDir(true), LOCAL_PREFIX + nextPathId());
   }
 
   /**
-   * Get a path to store tmp data destined for external URI.
+   * Get a path to store tmp data destined for external Path.
    *
-   * @param extURI
-   *          external URI to which the tmp data has to be eventually moved
+   * @param path external Path to which the tmp data has to be eventually moved
    * @return next available tmp path on the file system corresponding extURI
    */
-  public String getExternalTmpFileURI(URI extURI) {
-    return getExternalScratchDir(extURI) +  Path.SEPARATOR + EXT_PREFIX +
-      nextPathId();
+  public Path getExternalTmpPath(Path path) {
+    URI extURI = path.toUri();
+    if (extURI.getScheme().equals("viewfs")) {
+      // if we are on viewfs we don't want to use /tmp as tmp dir since rename from /tmp/..
+      // to final /user/hive/warehouse/ will fail later, so instead pick tmp dir
+      // on same namespace as tbl dir.
+      return getExtTmpPathRelTo(path.getParent());
+    }
+    return new Path(getExternalScratchDir(extURI), EXT_PREFIX +
+        nextPathId());
+  }
+
+  /**
+   * This is similar to getExternalTmpPath() with difference being this method returns temp path
+   * within passed in uri, whereas getExternalTmpPath() ignores passed in path and returns temp
+   * path within /tmp
+   */
+  public Path getExtTmpPathRelTo(Path path) {
+    return new Path(getStagingDir(path, !explain), EXT_PREFIX + nextPathId());
   }
 
   /**
@@ -336,6 +522,7 @@ public class Context {
     if (resDir != null) {
       try {
         FileSystem fs = resDir.getFileSystem(conf);
+        LOG.debug("Deleting result dir: " + resDir);
         fs.delete(resDir, true);
       } catch (IOException e) {
         LOG.info("Context clear error: " + StringUtils.stringifyException(e));
@@ -345,6 +532,7 @@ public class Context {
     if (resFile != null) {
       try {
         FileSystem fs = resFile.getFileSystem(conf);
+        LOG.debug("Deleting result file: " + resFile);
         fs.delete(resFile, false);
       } catch (IOException e) {
         LOG.info("Context clear error: " + StringUtils.stringifyException(e));
@@ -370,7 +558,7 @@ public class Context {
         resFs = resDir.getFileSystem(conf);
         FileStatus status = resFs.getFileStatus(resDir);
         assert status.isDir();
-        FileStatus[] resDirFS = resFs.globStatus(new Path(resDir + "/*"));
+        FileStatus[] resDirFS = resFs.globStatus(new Path(resDir + "/*"), FileUtils.HIDDEN_FILES_PATH_FILTER);
         resDirPaths = new Path[resDirFS.length];
         int pos = 0;
         for (FileStatus resFS : resDirFS) {
@@ -410,6 +598,13 @@ public class Context {
     }
 
     return null;
+  }
+
+  public void resetStream() {
+    if (initialized) {
+      resDirFilesNum = 0;
+      initialized = false;
+    }
   }
 
   /**
@@ -465,7 +660,14 @@ public class Context {
    * Today this translates into running hadoop jobs locally
    */
   public boolean isLocalOnlyExecutionMode() {
-    return HiveConf.getVar(conf, HiveConf.ConfVars.HADOOPJT).equals("local");
+    // Always allow spark to run in a cluster mode. Without this, depending on
+    // user's local hadoop settings, true may be returned, which causes plan to be
+    // stored in local path.
+    if (HiveConf.getVar(conf, HiveConf.ConfVars.HIVE_EXECUTION_ENGINE).equals("spark")) {
+      return false;
+    }
+
+    return ShimLoader.getHadoopShims().isLocalMode(conf);
   }
 
   public List<HiveLock> getHiveLocks() {
@@ -476,12 +678,12 @@ public class Context {
     this.hiveLocks = hiveLocks;
   }
 
-  public HiveLockManager getHiveLockMgr() {
-    return hiveLockMgr;
+  public HiveTxnManager getHiveTxnManager() {
+    return hiveTxnManager;
   }
 
-  public void setHiveLockMgr(HiveLockManager hiveLockMgr) {
-    this.hiveLockMgr = hiveLockMgr;
+  public void setHiveTxnManager(HiveTxnManager txnMgr) {
+    hiveTxnManager = txnMgr;
   }
 
   public void setOriginalTracker(String originalTracker) {
@@ -490,7 +692,7 @@ public class Context {
 
   public void restoreOriginalTracker() {
     if (originalTracker != null) {
-      HiveConf.setVar(conf, HiveConf.ConfVars.HADOOPJT, originalTracker);
+      ShimLoader.getHadoopShims().setJobLauncherRpcAddress(conf, originalTracker);
       originalTracker = null;
     }
   }
@@ -499,45 +701,34 @@ public class Context {
     pathToCS.put(path, cs);
   }
 
+  public ContentSummary getCS(Path path) {
+    return getCS(path.toString());
+  }
+
   public ContentSummary getCS(String path) {
     return pathToCS.get(path);
+  }
+
+  public Map<String, ContentSummary> getPathToCS() {
+    return pathToCS;
   }
 
   public Configuration getConf() {
     return conf;
   }
 
-
   /**
-   * Given a mapping from paths to objects, localize any MR tmp paths
-   * @param map mapping from paths to objects
+   * @return the isHDFSCleanup
    */
-  public void localizeKeys(Map<String, Object> map) {
-    for (Map.Entry<String, Object> entry: map.entrySet()) {
-      String path = entry.getKey();
-      if (isMRTmpFileURI(path)) {
-        Object val = entry.getValue();
-        map.remove(path);
-        map.put(localizeMRTmpFileURI(path), val);
-      }
-    }
+  public boolean isHDFSCleanup() {
+    return isHDFSCleanup;
   }
 
   /**
-   * Given a list of paths, localize any MR tmp paths contained therein
-   * @param paths list of paths to be localized
+   * @param isHDFSCleanup the isHDFSCleanup to set
    */
-  public void localizePaths(List<String> paths) {
-    Iterator<String> iter = paths.iterator();
-    List<String> toAdd = new ArrayList<String> ();
-    while(iter.hasNext()) {
-      String path = iter.next();
-      if (isMRTmpFileURI(path)) {
-        iter.remove();
-        toAdd.add(localizeMRTmpFileURI(path));
-      }
-    }
-    paths.addAll(toAdd);
+  public void setHDFSCleanup(boolean isHDFSCleanup) {
+    this.isHDFSCleanup = isHDFSCleanup;
   }
 
   public boolean isNeedLockMgr() {
@@ -546,5 +737,21 @@ public class Context {
 
   public void setNeedLockMgr(boolean needLockMgr) {
     this.needLockMgr = needLockMgr;
+  }
+
+  public int getTryCount() {
+    return tryCount;
+  }
+
+  public void setTryCount(int tryCount) {
+    this.tryCount = tryCount;
+  }
+
+  public void setAcidOperation(AcidUtils.Operation op) {
+    acidOperation = op;
+  }
+
+  public AcidUtils.Operation getAcidOperation() {
+    return acidOperation;
   }
 }

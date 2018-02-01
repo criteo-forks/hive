@@ -19,17 +19,35 @@
 package org.apache.hadoop.hive.ql.exec;
 
 import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.hadoop.hive.ql.metadata.Hive;
+import org.apache.hadoop.hive.ql.session.OperationLog;
 import org.apache.hadoop.hive.ql.session.SessionState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * TaskRunner implementation.
  **/
 
 public class TaskRunner extends Thread {
+
   protected Task<? extends Serializable> tsk;
   protected TaskResult result;
   protected SessionState ss;
+  private OperationLog operationLog;
+  private static AtomicLong taskCounter = new AtomicLong(0);
+  private static ThreadLocal<Long> taskRunnerID = new ThreadLocal<Long>() {
+    @Override
+    protected Long initialValue() {
+      return taskCounter.incrementAndGet();
+    }
+  };
+
+  protected Thread runner;
+
+  private static transient final Logger LOG = LoggerFactory.getLogger(TaskRunner.class);
 
   public TaskRunner(Task<? extends Serializable> tsk, TaskResult result) {
     this.tsk = tsk;
@@ -41,10 +59,35 @@ public class TaskRunner extends Thread {
     return tsk;
   }
 
+  public TaskResult getTaskResult() {
+    return result;
+  }
+
+  public Thread getRunner() {
+    return runner;
+  }
+
+  public boolean isRunning() {
+    return result.isRunning();
+  }
+
   @Override
   public void run() {
-    SessionState.start(ss);
-    runSequential();
+    runner = Thread.currentThread();
+    try {
+      OperationLog.setCurrentOperationLog(operationLog);
+      SessionState.start(ss);
+      runSequential();
+    } finally {
+      try {
+        // Call Hive.closeCurrent() that closes the HMS connection, causes
+        // HMS connection leaks otherwise.
+        Hive.closeCurrent();
+      } catch (Exception e) {
+        LOG.warn("Exception closing Metastore connection:" + e.getMessage());
+      }
+      runner = null;
+    }
   }
 
   /**
@@ -56,9 +99,19 @@ public class TaskRunner extends Thread {
     try {
       exitVal = tsk.executeTask();
     } catch (Throwable t) {
+      if (tsk.getException() == null) {
+        tsk.setException(t);
+      }
       t.printStackTrace();
     }
-    result.setExitVal(exitVal);
+    result.setExitVal(exitVal, tsk.getException());
   }
 
+  public static long getTaskRunnerID () {
+    return taskRunnerID.get();
+  }
+
+  public void setOperationLog(OperationLog operationLog) {
+    this.operationLog = operationLog;
+  }
 }

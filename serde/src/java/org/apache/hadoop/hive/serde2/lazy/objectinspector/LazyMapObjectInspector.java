@@ -23,13 +23,15 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyMap;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParameters;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyObjectInspectorParametersImpl;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.Text;
 
 /**
  * LazyMapObjectInspector works on struct data that is stored in LazyStruct.
- * 
+ *
  * Always use the ObjectInspectorFactory to create new ObjectInspector objects,
  * instead of directly creating an instance of this class.
  */
@@ -38,15 +40,16 @@ public class LazyMapObjectInspector implements MapObjectInspector {
   public static final Log LOG = LogFactory.getLog(LazyMapObjectInspector.class
       .getName());
 
-  ObjectInspector mapKeyObjectInspector;
-  ObjectInspector mapValueObjectInspector;
+  private ObjectInspector mapKeyObjectInspector;
+  private ObjectInspector mapValueObjectInspector;
+  private byte itemSeparator;
+  private byte keyValueSeparator;
+  private LazyObjectInspectorParameters lazyParams;
 
-  byte itemSeparator;
-  byte keyValueSeparator;
-  Text nullSequence;
-  boolean escaped;
-  byte escapeChar;
-
+  protected LazyMapObjectInspector() {
+    super();
+    lazyParams = new LazyObjectInspectorParametersImpl();
+  }
   /**
    * Call ObjectInspectorFactory.getStandardListObjectInspector instead.
    */
@@ -59,9 +62,19 @@ public class LazyMapObjectInspector implements MapObjectInspector {
 
     this.itemSeparator = itemSeparator;
     this.keyValueSeparator = keyValueSeparator;
-    this.nullSequence = nullSequence;
-    this.escaped = escaped;
-    this.escapeChar = escapeChar;
+    this.lazyParams = new LazyObjectInspectorParametersImpl(
+        escaped, escapeChar, false, null, null, nullSequence);
+  }
+
+  protected LazyMapObjectInspector(ObjectInspector mapKeyObjectInspector,
+      ObjectInspector mapValueObjectInspector, byte itemSeparator,
+      byte keyValueSeparator, LazyObjectInspectorParameters lazyParams) {
+    this.mapKeyObjectInspector = mapKeyObjectInspector;
+    this.mapValueObjectInspector = mapValueObjectInspector;
+
+    this.itemSeparator = itemSeparator;
+    this.keyValueSeparator = keyValueSeparator;
+    this.lazyParams = lazyParams;
   }
 
   @Override
@@ -71,7 +84,7 @@ public class LazyMapObjectInspector implements MapObjectInspector {
 
   @Override
   public String getTypeName() {
-    return org.apache.hadoop.hive.serde.Constants.MAP_TYPE_NAME + "<"
+    return org.apache.hadoop.hive.serde.serdeConstants.MAP_TYPE_NAME + "<"
         + mapKeyObjectInspector.getTypeName() + ","
         + mapValueObjectInspector.getTypeName() + ">";
   }
@@ -120,14 +133,18 @@ public class LazyMapObjectInspector implements MapObjectInspector {
   }
 
   public Text getNullSequence() {
-    return nullSequence;
+    return lazyParams.getNullSequence();
   }
 
   public boolean isEscaped() {
-    return escaped;
+    return lazyParams.isEscaped();
   }
 
   public byte getEscapeChar() {
-    return escapeChar;
+    return lazyParams.getEscapeChar();
+  }
+
+  public LazyObjectInspectorParameters getLazyParams() {
+    return lazyParams;
   }
 }

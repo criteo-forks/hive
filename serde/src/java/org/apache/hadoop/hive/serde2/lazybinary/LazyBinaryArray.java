@@ -149,7 +149,7 @@ public class LazyBinaryArray extends
       if ((bytes[nullByteCur] & (1 << (i % 8))) != 0) {
         elementIsNull[i] = false;
         LazyBinaryUtils.checkObjectByteInfo(listEleObjectInspector, bytes,
-            lastElementByteEnd, recordInfo);
+            lastElementByteEnd, recordInfo, vInt);
         elementStart[i] = lastElementByteEnd + recordInfo.elementOffset;
         elementLength[i] = recordInfo.elementSize;
         lastElementByteEnd = elementStart[i] + elementLength[i];
@@ -214,7 +214,7 @@ public class LazyBinaryArray extends
 
   /**
    * cachedList is reused every time getList is called. Different
-   * LazyBianryArray instances cannot share the same cachedList.
+   * LazyBinaryArray instances cannot share the same cachedList.
    */
   ArrayList<Object> cachedList;
 

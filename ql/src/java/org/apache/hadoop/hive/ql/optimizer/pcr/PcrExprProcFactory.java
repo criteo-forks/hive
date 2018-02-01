@@ -38,6 +38,7 @@ import org.apache.hadoop.hive.ql.lib.RuleRegExp;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.optimizer.ppr.PartExprEvalUtils;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
@@ -45,7 +46,6 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeFieldDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
-import org.apache.hadoop.hive.ql.plan.ExprNodeNullDesc;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
@@ -57,10 +57,10 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
  * It also generates node by Modifying expr trees with partition conditions removed
  */
 public final class PcrExprProcFactory {
-  static Object evalExprWithPart(ExprNodeDesc expr, Partition p) throws SemanticException {
+  static Object evalExprWithPart(ExprNodeDesc expr, Partition p, List<VirtualColumn> vcs)
+      throws SemanticException {
     StructObjectInspector rowObjectInspector;
     Table tbl = p.getTable();
-    LinkedHashMap<String, String> partSpec = p.getSpec();
 
     try {
       rowObjectInspector = (StructObjectInspector) tbl
@@ -70,7 +70,7 @@ public final class PcrExprProcFactory {
     }
 
     try {
-      return PartExprEvalUtils.evalExprWithPart(expr, partSpec, rowObjectInspector);
+      return PartExprEvalUtils.evalExprWithPart(expr, p, vcs, rowObjectInspector);
     } catch (HiveException e) {
       throw new SemanticException(e);
     }
@@ -125,7 +125,9 @@ public final class PcrExprProcFactory {
   }
 
   static Boolean opAnd(Boolean op1, Boolean op2) {
-    if (op1.equals(Boolean.FALSE) || op2.equals(Boolean.FALSE)) {
+    // When people forget to quote a string, op1/op2 is null.
+    // For example, select * from some_table where ds > 2012-12-1 and ds < 2012-12-2 .
+    if (op1 != null && op1.equals(Boolean.FALSE) || op2 != null && op2.equals(Boolean.FALSE)) {
       return Boolean.FALSE;
     }
     if (op1 == null || op2 == null) {
@@ -135,7 +137,9 @@ public final class PcrExprProcFactory {
   }
 
   static Boolean opOr(Boolean op1, Boolean op2) {
-    if (op1.equals(Boolean.TRUE) || op2.equals(Boolean.TRUE)) {
+    // When people forget to quote a string, op1/op2 is null.
+    // For example, select * from some_table where ds > 2012-12-1 or ds < 2012-12-2 .
+    if (op1 != null && op1.equals(Boolean.TRUE) || op2 != null && op2.equals(Boolean.TRUE)) {
       return Boolean.TRUE;
     }
     if (op1 == null || op2 == null) {
@@ -145,11 +149,15 @@ public final class PcrExprProcFactory {
   }
 
   static Boolean opNot(Boolean op) {
-    if (op.equals(Boolean.TRUE)) {
-      return Boolean.FALSE;
-    }
-    if (op.equals(Boolean.FALSE)) {
-      return Boolean.TRUE;
+    // When people forget to quote a string, op1/op2 is null.
+    // For example, select * from some_table where not ds > 2012-12-1 .
+    if (op != null) {
+      if (op.equals(Boolean.TRUE)) {
+        return Boolean.FALSE;
+      }
+      if (op.equals(Boolean.FALSE)) {
+        return Boolean.TRUE;
+      }
     }
     return null;
   }
@@ -199,7 +207,7 @@ public final class PcrExprProcFactory {
         children.add(wrapper.outExpr);
       }
     }
-    funcExpr.setChildExprs(children);
+    funcExpr.setChildren(children);
 
     return funcExpr;
   }
@@ -315,7 +323,8 @@ public final class PcrExprProcFactory {
             // a result, we update the state of the node to be TRUE of FALSE
             Boolean[] results = new Boolean[ctx.getPartList().size()];
             for (int i = 0; i < ctx.getPartList().size(); i++) {
-              results[i] = (Boolean) evalExprWithPart(fd, ctx.getPartList().get(i));
+              results[i] = (Boolean) evalExprWithPart(fd, ctx.getPartList().get(i),
+                  ctx.getVirtualColumns());
             }
             return getResultWrapFromResults(results, fd, nodeOutputs);
           }
@@ -325,7 +334,7 @@ public final class PcrExprProcFactory {
           // to be a CONSTANT node with value to be the agreed result.
           Object[] results = new Object[ctx.getPartList().size()];
           for (int i = 0; i < ctx.getPartList().size(); i++) {
-            results[i] = evalExprWithPart(fd, ctx.getPartList().get(i));
+            results[i] = evalExprWithPart(fd, ctx.getPartList().get(i), ctx.getVirtualColumns());
           }
           Object result = ifResultsAgree(results);
           if (result == null) {
@@ -356,15 +365,13 @@ public final class PcrExprProcFactory {
         Object... nodeOutputs) throws SemanticException {
       ExprNodeFieldDesc fnd = (ExprNodeFieldDesc) nd;
       boolean unknown = false;
-      int idx = 0;
       for (Object child : nodeOutputs) {
         NodeInfoWrapper wrapper = (NodeInfoWrapper) child;
         if (wrapper.state == WalkState.UNKNOWN) {
           unknown = true;
+          break;
         }
       }
-
-      assert (idx == 0);
 
       if (unknown) {
         return new NodeInfoWrapper(WalkState.UNKNOWN, null, fnd);
@@ -384,12 +391,11 @@ public final class PcrExprProcFactory {
     @Override
     public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx,
         Object... nodeOutputs) throws SemanticException {
-      if (nd instanceof ExprNodeConstantDesc || nd instanceof ExprNodeNullDesc) {
+      if (nd instanceof ExprNodeConstantDesc) {
         return new NodeInfoWrapper(WalkState.CONSTANT, null,
             (ExprNodeDesc) nd);
       }
-      assert (false);
-      return null;
+      return new NodeInfoWrapper(WalkState.UNKNOWN, null, (ExprNodeDesc)nd);
     }
   }
 
@@ -415,17 +421,19 @@ public final class PcrExprProcFactory {
    * @param tabAlias
    *          the table alias
    * @param parts
-   *          the list of all pruned partitions for the
+   *          the list of all pruned partitions for the table
+   * @param vcs
+   *          virtual columns referenced
    * @param pred
    *          expression tree of the target filter operator
    * @return the node information of the root expression
    * @throws SemanticException
    */
   public static NodeInfoWrapper walkExprTree(
-      String tabAlias, ArrayList<Partition> parts, ExprNodeDesc pred)
+      String tabAlias, ArrayList<Partition> parts, List<VirtualColumn> vcs, ExprNodeDesc pred)
       throws SemanticException {
     // Create the walker, the rules dispatcher and the context.
-    PcrExprProcCtx pprCtx = new PcrExprProcCtx(tabAlias, parts);
+    PcrExprProcCtx pprCtx = new PcrExprProcCtx(tabAlias, parts, vcs);
 
     Map<Rule, NodeProcessor> exprRules = new LinkedHashMap<Rule, NodeProcessor>();
     exprRules.put(

@@ -18,20 +18,20 @@
 
 package org.apache.hadoop.hive.ql.plan;
 
-import java.io.Serializable;
 import java.util.List;
+
 
 /**
  * FilterDesc.
  *
  */
 @Explain(displayName = "Filter Operator")
-public class FilterDesc implements Serializable {
+public class FilterDesc extends AbstractOperatorDesc {
 
   /**
    * sampleDesc is used to keep track of the sampling descriptor.
    */
-  public static class sampleDesc {
+  public static class SampleDesc implements Cloneable {
     // The numerator of the TABLESAMPLE clause
     private int numerator;
 
@@ -41,11 +41,11 @@ public class FilterDesc implements Serializable {
     // Input files can be pruned
     private boolean inputPruning;
 
-    public sampleDesc() {
+    public SampleDesc() {
     }
 
-    public sampleDesc(int numerator, int denominator,
-        List<String> tabBucketCols, boolean inputPruning) {
+    public SampleDesc(int numerator, int denominator,
+                      List<String> tabBucketCols, boolean inputPruning) {
       this.numerator = numerator;
       this.denominator = denominator;
       this.inputPruning = inputPruning;
@@ -62,12 +62,25 @@ public class FilterDesc implements Serializable {
     public boolean getInputPruning() {
       return inputPruning;
     }
+
+    @Override
+    public Object clone() {
+      SampleDesc desc = new SampleDesc(numerator, denominator, null, inputPruning);
+      return desc;
+    }
+    
+    public String toString() {
+      return inputPruning ? "BUCKET " + numerator + " OUT OF " + denominator: null;  
+    }
   }
 
   private static final long serialVersionUID = 1L;
   private org.apache.hadoop.hive.ql.plan.ExprNodeDesc predicate;
   private boolean isSamplingPred;
-  private transient sampleDesc sampleDescr;
+  private transient SampleDesc sampleDescr;
+  //Is this a filter that should perform a comparison for sorted searches
+  private boolean isSortedFilter;
+  private transient boolean isGenerated;
 
   public FilterDesc() {
   }
@@ -82,13 +95,19 @@ public class FilterDesc implements Serializable {
 
   public FilterDesc(
       final org.apache.hadoop.hive.ql.plan.ExprNodeDesc predicate,
-      boolean isSamplingPred, final sampleDesc sampleDescr) {
+      boolean isSamplingPred, final SampleDesc sampleDescr) {
     this.predicate = predicate;
     this.isSamplingPred = isSamplingPred;
     this.sampleDescr = sampleDescr;
   }
 
   @Explain(displayName = "predicate")
+  public String getPredicateString() {
+    StringBuffer sb = new StringBuffer();
+    PlanUtils.addExprToStringBuffer(predicate, sb);
+    return sb.toString();
+  }
+    
   public org.apache.hadoop.hive.ql.plan.ExprNodeDesc getPredicate() {
     return predicate;
   }
@@ -107,13 +126,47 @@ public class FilterDesc implements Serializable {
     this.isSamplingPred = isSamplingPred;
   }
 
-  @Explain(displayName = "sampleDesc", normalExplain = false)
-  public sampleDesc getSampleDescr() {
+  public SampleDesc getSampleDescr() {
     return sampleDescr;
   }
 
-  public void setSampleDescr(final sampleDesc sampleDescr) {
+  public void setSampleDescr(final SampleDesc sampleDescr) {
     this.sampleDescr = sampleDescr;
   }
 
+  @Explain(displayName = "sampleDesc", normalExplain = false)
+  public String getSampleDescExpr() {
+    return sampleDescr == null ? null : sampleDescr.toString();
+  }
+
+  public boolean isSortedFilter() {
+    return isSortedFilter;
+  }
+
+  public void setSortedFilter(boolean isSortedFilter) {
+    this.isSortedFilter = isSortedFilter;
+  }
+
+  /**
+   * Some filters are generated or implied, which means it is not in the query.
+   * It is added by the analyzer. For example, when we do an inner join, we add
+   * filters to exclude those rows with null join key values.
+   */
+  public boolean isGenerated() {
+    return isGenerated;
+  }
+
+  public void setGenerated(boolean isGenerated) {
+    this.isGenerated = isGenerated;
+  }
+
+  @Override
+  public Object clone() {
+    FilterDesc filterDesc = new FilterDesc(getPredicate().clone(), getIsSamplingPred());
+    if (getIsSamplingPred()) {
+      filterDesc.setSampleDescr(getSampleDescr());
+    }
+    filterDesc.setSortedFilter(isSortedFilter());
+    return filterDesc;
+  }
 }

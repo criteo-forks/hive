@@ -5,6 +5,8 @@ DESCRIBE FUNCTION EXTENDED percentile;
 set hive.map.aggr = false;
 set hive.groupby.skewindata = false;
 
+-- SORT_QUERY_RESULTS
+
 SELECT CAST(key AS INT) DIV 10,
        percentile(CAST(substr(value, 5) AS INT), 0.0),
        percentile(CAST(substr(value, 5) AS INT), 0.5),
@@ -70,3 +72,6 @@ FROM src
 GROUP BY CAST(key AS INT) DIV 10;
 
 select percentile(cast(key as bigint), 0.5) from src where false;
+
+-- test where percentile list is empty
+select percentile(cast(key as bigint), array()) from src where false;

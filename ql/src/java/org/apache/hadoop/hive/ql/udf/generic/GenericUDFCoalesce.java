@@ -25,7 +25,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 
 /**
  * GenericUDF Class for SQL construct "COALESCE(a, b, c)".
- * 
+ *
  * NOTES: 1. a, b and c should have the same TypeInfo, or an exception will be
  * thrown.
  */
@@ -34,15 +34,15 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
     extended = "Example:\n"
     + "  > SELECT _FUNC_(NULL, 1, NULL) FROM src LIMIT 1;\n" + "  1")
 public class GenericUDFCoalesce extends GenericUDF {
-  private ObjectInspector[] argumentOIs;
-  private GenericUDFUtils.ReturnObjectInspectorResolver returnOIResolver;
+  private transient ObjectInspector[] argumentOIs;
+  private transient GenericUDFUtils.ReturnObjectInspectorResolver returnOIResolver;
 
   @Override
   public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentTypeException {
 
     argumentOIs = arguments;
 
-    returnOIResolver = new GenericUDFUtils.ReturnObjectInspectorResolver();
+    returnOIResolver = new GenericUDFUtils.ReturnObjectInspectorResolver(true);
     for (int i = 0; i < arguments.length; i++) {
       if (!returnOIResolver.update(arguments[i])) {
         throw new UDFArgumentTypeException(i,
@@ -69,17 +69,7 @@ public class GenericUDFCoalesce extends GenericUDF {
 
   @Override
   public String getDisplayString(String[] children) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("COALESCE(");
-    if (children.length > 0) {
-      sb.append(children[0]);
-      for (int i = 1; i < children.length; i++) {
-        sb.append(",");
-        sb.append(children[i]);
-      }
-    }
-    sb.append(")");
-    return sb.toString();
+    return getStandardDisplayString("COALESCE", children, ",");
   }
 
 }

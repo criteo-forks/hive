@@ -1,28 +1,23 @@
 PREHOOK: query: CREATE TABLE INPUT4(KEY STRING, VALUE STRING) STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
+PREHOOK: Output: default@INPUT4
 POSTHOOK: query: CREATE TABLE INPUT4(KEY STRING, VALUE STRING) STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@INPUT4
 PREHOOK: query: EXPLAIN
-LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE INPUT4
+LOAD DATA LOCAL INPATH '../../data/files/kv1.txt' INTO TABLE INPUT4
 PREHOOK: type: LOAD
 POSTHOOK: query: EXPLAIN
-LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE INPUT4
+LOAD DATA LOCAL INPATH '../../data/files/kv1.txt' INTO TABLE INPUT4
 POSTHOOK: type: LOAD
-ABSTRACT SYNTAX TREE:
-  (TOK_LOAD '../data/files/kv1.txt' (TOK_TAB INPUT4) LOCAL)
-
 STAGE DEPENDENCIES:
   Stage-0 is a root stage
   Stage-1 depends on stages: Stage-0
 
 STAGE PLANS:
   Stage: Stage-0
-    Copy
-      source: file:/mnt/vol/devrs004.snc1/jssarma/projects/hive_trunk/data/files/kv1.txt
-      destination: file:/mnt/vol/devrs004.snc1/jssarma/projects/hive_trunk/build/ql/scratchdir/hive_2010-07-21_11-28-36_668_8539148391422299238/10000
-
-  Stage: Stage-1
     Move Operator
       tables:
           replace: false
@@ -30,22 +25,34 @@ STAGE PLANS:
               input format: org.apache.hadoop.mapred.TextInputFormat
               output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
               serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
-              name: input4
+              name: default.input4
 
+  Stage: Stage-1
+    Stats-Aggr Operator
 
-PREHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE INPUT4
+PREHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/kv1.txt' INTO TABLE INPUT4
 PREHOOK: type: LOAD
-POSTHOOK: query: LOAD DATA LOCAL INPATH '../data/files/kv1.txt' INTO TABLE INPUT4
+#### A masked pattern was here ####
+PREHOOK: Output: default@input4
+POSTHOOK: query: LOAD DATA LOCAL INPATH '../../data/files/kv1.txt' INTO TABLE INPUT4
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@input4
-PREHOOK: query: SELECT INPUT4.VALUE, INPUT4.KEY FROM INPUT4
+PREHOOK: query: EXPLAIN FORMATTED
+SELECT Input4Alias.VALUE, Input4Alias.KEY FROM INPUT4 AS Input4Alias
+PREHOOK: type: QUERY
+POSTHOOK: query: EXPLAIN FORMATTED
+SELECT Input4Alias.VALUE, Input4Alias.KEY FROM INPUT4 AS Input4Alias
+POSTHOOK: type: QUERY
+{"STAGE PLANS":{"Stage-0":{"Fetch Operator":{"limit:":"-1","Processor Tree:":{"TableScan":{"alias:":"input4alias","children":{"Select Operator":{"expressions:":"value (type: string), key (type: string)","outputColumnNames:":["_col0","_col1"],"children":{"ListSink":{}},"Statistics:":"Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE"}},"Statistics:":"Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE"}}}}},"STAGE DEPENDENCIES":{"Stage-0":{"ROOT STAGE":"TRUE"}}}
+PREHOOK: query: SELECT Input4Alias.VALUE, Input4Alias.KEY FROM INPUT4 AS Input4Alias
 PREHOOK: type: QUERY
 PREHOOK: Input: default@input4
-PREHOOK: Output: file:/tmp/jssarma/hive_2010-07-21_11-28-36_825_182661124432042155/10000
-POSTHOOK: query: SELECT INPUT4.VALUE, INPUT4.KEY FROM INPUT4
+#### A masked pattern was here ####
+POSTHOOK: query: SELECT Input4Alias.VALUE, Input4Alias.KEY FROM INPUT4 AS Input4Alias
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@input4
-POSTHOOK: Output: file:/tmp/jssarma/hive_2010-07-21_11-28-36_825_182661124432042155/10000
+#### A masked pattern was here ####
 val_238	238
 val_86	86
 val_311	311
