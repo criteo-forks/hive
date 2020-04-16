@@ -29,7 +29,12 @@ import org.apache.hadoop.hive.ql.io.parquet.convert.ParquetToHiveSchemaConverter
 // END blind imports
 
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import com.google.common.base.Preconditions;
 
