@@ -2129,7 +2129,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           throw newMetaException(e);
         }
       } finally {
-        endFunction("get_multi_table", tables != null, ex, join(tableNames, ",")); // TODO
+        endFunction("get_multi_table", tables != null, ex, dbName, join(tableNames, ","));
       }
       return tables;
     }
@@ -2178,7 +2178,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           throw newMetaException(e);
         }
       } finally {
-        endFunction("get_table_names_by_filter", tables != null, ex, join(tables, ",")); // TODO
+        endFunction("get_table_names_by_filter", tables != null, ex, dbName, join(tables, ","));
       }
       return tables;
     }
