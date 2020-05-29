@@ -951,7 +951,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           throw newMetaException(e);
         }
       } finally {
-        endFunction("create_database", success, ex);
+        endFunction("create_database", success, ex, db.getName(), null);
       }
     }
 
@@ -970,7 +970,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         ex = e;
         throw e;
       } finally {
-        endFunction("get_database", db != null, ex);
+        endFunction("get_database", db != null, ex, name, null);
       }
       return db;
     }
@@ -1012,7 +1012,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         ex = e;
         rethrowException(e);
       } finally {
-        endFunction("alter_database", success, ex);
+        endFunction("alter_database", success, ex, dbName, null);
       }
     }
 
@@ -1166,7 +1166,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
 
       startFunction("drop_database", ": " + dbName);
       if (DEFAULT_DATABASE_NAME.equalsIgnoreCase(dbName)) {
-        endFunction("drop_database", false, null);
+        endFunction("drop_database", false, null, dbName, null);
         throw new MetaException("Can not drop default database");
       }
 
@@ -1190,7 +1190,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           throw newMetaException(e);
         }
       } finally {
-        endFunction("drop_database", success, ex);
+        endFunction("drop_database", success, ex, dbName, null);
       }
     }
 
@@ -4057,7 +4057,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           throw newMetaException(e);
         }
       } finally {
-        endFunction("get_tables", ret != null, ex);
+        endFunction("get_tables", ret != null, ex, dbname, null);
       }
       return ret;
     }
@@ -4079,7 +4079,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           throw newMetaException(e);
         }
       } finally {
-        endFunction("get_tables_by_type", ret != null, ex);
+        endFunction("get_tables_by_type", ret != null, ex, dbname, null);
       }
       return ret;
     }
@@ -4100,7 +4100,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           throw newMetaException(e);
         }
       } finally {
-        endFunction("get_all_tables", ret != null, ex);
+        endFunction("get_all_tables", ret != null, ex, dbname, null);
       }
       return ret;
     }
@@ -6293,7 +6293,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         ex = e;
         throw newMetaException(e);
       } finally {
-        endFunction("get_functions", funcNames != null, ex);
+        endFunction("get_functions", funcNames != null, ex, dbName, null);
       }
 
       return funcNames;
@@ -6341,7 +6341,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         ex = e;
         throw newMetaException(e);
       } finally {
-        endFunction("get_function", func != null, ex);
+        endFunction("get_function", func != null, ex, dbName, null);
       }
 
       return func;
