@@ -13,7 +13,6 @@
  */
 package org.apache.hadoop.hive.ql.io.parquet.convert;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.io.parquet.read.DataWritableReadSupport;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.io.ArrayWritable;
