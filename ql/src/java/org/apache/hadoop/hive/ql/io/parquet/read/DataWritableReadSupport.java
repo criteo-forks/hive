@@ -412,6 +412,9 @@ public class DataWritableReadSupport extends ReadSupport<ArrayWritable> {
       metadata.put(key, String.valueOf(HiveConf.getBoolVar(
         configuration, HiveConf.ConfVars.HIVE_PARQUET_TIMESTAMP_SKIP_CONVERSION)));
     }
+    key = HiveConf.ConfVars.HIVE_STRUCT_SCHEMA_CONVERSION_BY_NAME.varname;
+    metadata.put(key, String.valueOf(HiveConf.getBoolVar(
+            configuration, HiveConf.ConfVars.HIVE_STRUCT_SCHEMA_CONVERSION_BY_NAME)));
     return new DataWritableRecordConverter(readContext.getRequestedSchema(), metadata, hiveTypeInfo);
   }
 }
