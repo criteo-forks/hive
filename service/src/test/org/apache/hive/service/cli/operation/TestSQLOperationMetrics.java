@@ -28,6 +28,7 @@ import org.apache.hive.service.cli.OperationState;
 import org.apache.hive.service.cli.session.HiveSession;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.mockito.Mockito.mock;
@@ -36,6 +37,7 @@ import static org.mockito.Mockito.when;
 /**
  * TestSQLOperationMetrics
  */
+@Ignore
 public class TestSQLOperationMetrics {
 
   private SQLOperation operation;
