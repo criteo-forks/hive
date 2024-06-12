@@ -1463,14 +1463,13 @@ public class ObjectStore implements RawStore, Configurable {
           + " doesn't exist.");
     }
 
-    // If the table type is set as MANAGED, but the table has property
-    // EXTERNAL, change the table type to EXTERNAL as well.
-    String tableType = tbl.getTableType();
-    if (tableType == null) {
-      tableType = TableType.MANAGED_TABLE.name();
-    }
-    if (TableType.MANAGED_TABLE.name().equalsIgnoreCase(tableType) && MetaStoreUtils.isExternalTable(tbl)) {
+    // If the table has property EXTERNAL set, this overrides tableType
+    String tableType;
+    if (MetaStoreUtils.isExternalTable(tbl)) {
       tableType = TableType.EXTERNAL_TABLE.name();
+    }
+    else {
+      tableType = TableType.MANAGED_TABLE.name();
     }
 
     // A new table is always created with a new column descriptor
