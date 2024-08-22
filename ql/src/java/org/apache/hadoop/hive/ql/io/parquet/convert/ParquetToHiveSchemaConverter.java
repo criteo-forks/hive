@@ -156,18 +156,12 @@ public class ParquetToHiveSchemaConverter {
               throw new UnsupportedOperationException("Invalid map type " + parquetGroupType);
             }
             GroupType mapKeyValType = parquetGroupType.getType(0).asGroupType();
-            if (!mapKeyValType.isRepetition(Type.Repetition.REPEATED) ||
-                !mapKeyValType.getOriginalType().equals(OriginalType.MAP_KEY_VALUE) ||
-                mapKeyValType.getFieldCount() != 2) {
+            if (!mapKeyValType.isRepetition(Type.Repetition.REPEATED) || mapKeyValType.getFieldCount() != 2) {
               throw new UnsupportedOperationException("Invalid map type " + parquetGroupType);
             }
             Type keyType = mapKeyValType.getType(0);
-            if (!keyType.isPrimitive() ||
-                !keyType.asPrimitiveType().getPrimitiveTypeName().equals(PrimitiveType
-                    .PrimitiveTypeName.BINARY) ||
-                !keyType.getOriginalType().equals(OriginalType.UTF8)) {
-              throw new UnsupportedOperationException("Map key type must be binary (UTF8): "
-                  + keyType);
+            if (!keyType.isPrimitive()) {
+              throw new UnsupportedOperationException("Map key type must be primitive: " + keyType);
             }
             Type valueType = mapKeyValType.getType(1);
             return createHiveMap(convertField(keyType), convertField(valueType));
@@ -200,7 +194,6 @@ public class ParquetToHiveSchemaConverter {
   private TypeInfo createHiveMap(TypeInfo keyType, TypeInfo valueType) {
     return TypeInfoFactory.getMapTypeInfo(keyType, valueType);
   }
-
   private TypeInfo createHiveArray(Type elementType, String elementName) {
     if (elementType.isPrimitive()) {
       return TypeInfoFactory.getListTypeInfo(convertField(elementType));
