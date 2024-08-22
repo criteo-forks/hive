@@ -194,6 +194,7 @@ public class ParquetToHiveSchemaConverter {
   private TypeInfo createHiveMap(TypeInfo keyType, TypeInfo valueType) {
     return TypeInfoFactory.getMapTypeInfo(keyType, valueType);
   }
+
   private TypeInfo createHiveArray(Type elementType, String elementName) {
     if (elementType.isPrimitive()) {
       return TypeInfoFactory.getListTypeInfo(convertField(elementType));
