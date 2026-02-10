@@ -3571,7 +3571,7 @@ public class ObjectStore implements RawStore, Configurable {
     name = HiveStringUtils.normalizeIdentifier(name);
     dbname = HiveStringUtils.normalizeIdentifier(dbname);
     MPartition oldp = getMPartition(dbname, name, part_vals);
-    MPartition newp = convertToMPart(newPart, false);
+    MPartition newp = convertToMPart(newPart, true);
     if (oldp == null || newp == null) {
       throw new InvalidObjectException("partition does not exist.");
     }
