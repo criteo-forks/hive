@@ -21,6 +21,9 @@ package org.apache.hadoop.hive.ql;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.Counters.Counter;
 
+import java.util.Collection;
+import java.util.Iterator;
+
 /**
  * MapRedStats.
  *
@@ -134,6 +137,26 @@ public class MapRedStats {
       if (hdfsWrittenCntr != null && (hdfsWritten = hdfsWrittenCntr.getValue()) >= 0) {
         sb.append(" HDFS Write: " + hdfsWritten);
       }
+
+      Counter virtualMemoryCntr = counters.findCounter("org.apache.hadoop.mapreduce.TaskCounter",
+              "VIRTUAL_MEMORY_BYTES");
+      long virtualMemory;
+      if (virtualMemoryCntr != null && (virtualMemory = virtualMemoryCntr.getValue()) >= 0) {
+        sb.append(" VIRTUAL MEMORY: " + virtualMemory);
+      }
+      Counter mapVirtualMemoryMaxCntr = counters.findCounter("org.apache.hadoop.mapreduce.TaskCounter",
+              "MAP_VIRTUAL_MEMORY_BYTES_MAX");
+      long mapVirtualMemoryMax;
+      if (mapVirtualMemoryMaxCntr != null && (mapVirtualMemoryMax = mapVirtualMemoryMaxCntr.getValue()) >= 0) {
+        sb.append(" MAP VIRTUAL MEMORY MAX: " + mapVirtualMemoryMax);
+      }
+      Counter reduceVirtualMemoryMaxCntr = counters.findCounter("org.apache.hadoop.mapreduce.TaskCounter",
+              "REDUCE_VIRTUAL_MEMORY_BYTES_MAX");
+      long reduceVirtualMemoryMax;
+      if (reduceVirtualMemoryMaxCntr != null && (reduceVirtualMemoryMax = reduceVirtualMemoryMaxCntr.getValue()) >= 0) {
+        sb.append(" REDUCE VIRTUAL MEMORY MAX: " + reduceVirtualMemoryMax);
+      }
+
     }
 
     sb.append(" " + (success ? "SUCCESS" : "FAIL"));
